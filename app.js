@@ -98,7 +98,9 @@ async function gh(path, opts = {}) {
   if (!res.ok) {
     let msg = 'HTTP ' + res.status;
     try { const e = await res.json(); msg = e.message || msg; } catch (e) { /* ignore */ }
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
   return res.json();
 }
@@ -111,7 +113,7 @@ async function getFileContent(path) {
     const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
     return { content: new TextDecoder('utf-8').decode(bytes), sha: d.sha };
   } catch (e) {
-    if (String(e.message).includes('404')) return null;
+    if (e.status === 404) return null;
     throw e;
   }
 }
@@ -762,9 +764,9 @@ async function testGitHub() {
     setTestResult('✅ GitHub Token 有效，repo「' + settings.github_owner + '/' + settings.github_repo + '」可訪問（' + (repo.default_branch ? 'default branch: ' + repo.default_branch + '，' : '') + '根目錄 ' + n + ' 個項目）', 'success');
   } catch (e) {
     let hint = '';
-    if (String(e.message).includes('401') || String(e.message).includes('Bad credentials')) hint = '（Token 無效或已過期）';
-    else if (String(e.message).includes('403')) hint = '（權限不足，需要 Contents 讀寫權限）';
-    else if (String(e.message).includes('404')) hint = '（repo 唔存在，或 token 睇唔到佢）';
+    if (e.status === 401 || String(e.message).includes('Bad credentials')) hint = '（Token 無效或已過期）';
+    else if (e.status === 403) hint = '（權限不足，需要 Contents 讀寫權限）';
+    else if (e.status === 404) hint = '（repo 唔存在，或 token 睇唔到佢）';
     setTestResult('❌ GitHub 測試失敗：' + e.message + hint, 'error');
   } finally {
     setBusy(false);
