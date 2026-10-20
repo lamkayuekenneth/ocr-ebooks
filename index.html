@@ -150,13 +150,10 @@
           <input id="set-api-key" class="input" type="password" autocomplete="off">
         </label>
       </div>
-      <label class="check">
-        <input type="checkbox" id="set-write-repo" checked>
-        將以上設定寫入 repo 嘅 <code>settings.json</code>（未揀 = 只存喺本機瀏覽器 localStorage）
-      </label>
       <div class="security-note">
-        ⚠️ <b>安全警告</b>：如果 repo 係 <b>public</b>，任何寫入 <code>settings.json</code> 嘅 API Key / Token 都會俾任何人睇到！
-        建議：① 用 private repo；或 ② 唔好將 key 寫入 repo（取消上面剔號），key 只存喺自己瀏覽器。
+        🔒 <b>私隱設計</b>：GitHub Token 同 API Key 只會存喺你自己瀏覽器嘅 localStorage，<b>永遠唔會寫入 repo</b>。
+        repo 入面嘅 <code>settings.json</code> 只係非敏感預設（owner / repo / model / base URL），key 欄位一律留空，
+        就算 repo 係 public 都唔會洩漏任何 key。
       </div>
       <button type="button" class="btn success" id="btn-save-settings">💾 儲存設定</button>
       <div id="settings-status" class="status"></div>

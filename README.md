@@ -13,7 +13,7 @@
 7. **相片私隱**：相片只會喺瀏覽器記憶體入面處理（以 base64 data URL 送入 AI API），**分析完唔會儲存去 repo 或任何地方**，刷新頁面即消失
 8. **書庫頁**：表格列出 repo 中所有 `xxxx.json`、書名、作者，頂頭有 filter 可以篩選
 9. 撳書庫中任何一本書 → 用同一種表格方式顯示內容（**按 page 排序**），每條 row 都可以**編輯 / 刪除**，撳「儲存修改」寫返入 repo
-10. **設定頁**：可設定 AI model（預設 `deepseek/deepseek-v4.1-flash`）、base URL（預設 `https://openrouter.ai/api/v1`）、API Key、GitHub repo / token；設定會寫入 repo 嘅 `settings.json`
+10. **設定頁**：可設定 AI model（預設 `deepseek/deepseek-v4.1-flash`）、base URL（預設 `https://openrouter.ai/api/v1`）、API Key、GitHub repo / token；**key 只存喺瀏覽器 localStorage，唔會寫入 repo**（repo 入面嘅 `settings.json` 只保留非敏感預設）
 
 ## 🚀 部署
 
@@ -37,15 +37,15 @@
 | Base URL | 預設 `https://openrouter.ai/api/v1`（OpenAI 兼容 `/chat/completions` 都得） |
 | API Key | OpenRouter / 對應 provider 嘅 key |
 
-設定儲存：本機瀏覽器（localStorage）+ 可選寫入 repo 嘅 `settings.json`。
+設定儲存：**所有 key（GitHub Token / API Key）只存喺本機瀏覽器 localStorage**，唔會寫入 repo。
 
-## 🔐 安全警告（重要）
+## 🔐 安全設計（重要）
 
-- 呢個 repo 係 **public**。任何寫入 `settings.json` 嘅 **API Key / GitHub Token 都會公開**！
-- 建議做法：
-  - **方法 1**：將 repo 轉做 **private**（呢個 app 依然可以本地用 / private Pages 用）；
-  - **方法 2**：喺設定頁**取消剔**「將設定寫入 repo 嘅 settings.json」，令 key 只存喺你自己瀏覽器（localStorage），repo 入面嘅 `settings.json` 留空。
-- 今次第一次 commit 嘅 `settings.json` 已經係**空白 key 版本**，冇洩漏任何秘密。
+- 呢個 repo 係 **public**，所以設定採用「**key 只存本機**」設計：
+  - **GitHub Token 同 API Key 只會存喺你自己瀏覽器嘅 localStorage**，永遠唔會寫入 repo。
+  - repo 入面嘅 `settings.json` 只係非敏感預設（owner / repo / branch / model / base URL），key 欄位一律留空。
+  - 就算 repo 係 public，都唔會洩漏任何 key。
+- 換瀏覽器 / 清 cookies 之後要喺設定頁重新輸入 key（其他資料照舊喺 repo）。
 
 ## 📁 資料格式
 

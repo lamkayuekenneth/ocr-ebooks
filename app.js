@@ -586,7 +586,7 @@ function bindSettingsForm() {
   });
 }
 
-async function saveSettings() {
+function saveSettings() {
   settings.github_owner = $('#set-owner').value.trim();
   settings.github_repo = $('#set-repo').value.trim();
   settings.github_branch = $('#set-branch').value.trim() || 'main';
@@ -595,25 +595,9 @@ async function saveSettings() {
   settings.base_url = $('#set-base-url').value.trim() || DEFAULT_SETTINGS.base_url;
   settings.api_key = $('#set-api-key').value.trim();
   saveLocalSettings();
-
-  let msg = '設定已儲存到本機瀏覽器（localStorage）';
-  if ($('#set-write-repo').checked) {
-    if (!settings.github_token) {
-      msg = '未有 GitHub Token，settings.json 冇寫入，設定只存喺本機瀏覽器。';
-    } else {
-      setBusy(true);
-      try {
-        await writeFile('settings.json', JSON.stringify(settings, null, 2), 'Update settings.json');
-        msg = '設定已寫入 repo 嘅 settings.json，亦存咗本機一份。';
-      } catch (e) {
-        msg = '設定已存本機，但寫入 repo 失敗：' + e.message;
-      } finally {
-        setBusy(false);
-      }
-    }
-  }
+  const msg = '設定已儲存（只存喺本機瀏覽器 localStorage，唔會寫入 repo）';
   $('#settings-status').textContent = msg;
-  toast(msg, msg.includes('失敗') ? 'error' : 'success');
+  toast(msg, 'success');
 }
 
 /* =========================================================
@@ -728,12 +712,15 @@ async function init() {
   bindEvents();
   bindSettingsForm();
 
-  /* 讀取 repo 入面嘅 settings.json 做預設（localStorage 會覆蓋） */
+  /* 讀取 repo 入面嘅 settings.json 做非敏感預設（localStorage 會覆蓋）
+   * 注意：github_token / api_key 屬於敏感欄位，永遠唔會由 repo 讀入，
+   * 就算有人喺 repo 放咗 key 都一律忽略 —— key 只可以存喺本機 localStorage。 */
   try {
     const raw = await getFileContent('settings.json');
     if (raw && raw.content) {
       const repo = JSON.parse(raw.content);
-      settings = { ...DEFAULT_SETTINGS, ...repo };
+      const { github_token, api_key, ...safeRepo } = repo;
+      settings = { ...DEFAULT_SETTINGS, ...safeRepo };
       loadLocalSettings();      /* 再套 local 覆蓋 */
       bindSettingsForm();
     }
