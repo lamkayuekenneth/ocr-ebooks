@@ -197,9 +197,9 @@ function extractJSON(text) {
 /* =========================================================
  * 內容後處理：除去「冇標點符號分隔」嘅換行（排版 reflow）
  * - 段落空行（\n\n）一定保留
- * - 行尾有標點（。，；：？！、…」』））》等）→ 保留換行
+ * - 行尾有標點（。，；：？！、…」』））》等）→ 當做分段，輸出雙換行（空行）
  * - 行尾冇標點 → 刪除換行，將下一行接落嚟
- * - 下一行以數字／英文字母開頭（如頁碼、條目）→ 保留換行
+ * - 下一行以數字／英文字母開頭（如頁碼、條目）→ 當做分段，輸出雙換行
  * ========================================================= */
 const LINE_END_PUNCT = /[。，；：？！、…」』"')）》】]/;
 const LINE_START_KEEP = /[A-Za-z0-9·•\-–—]/;
@@ -218,12 +218,12 @@ function reflowContent(text) {
       const lastCh = prev.slice(-1);
       const nextFirst = l.charAt(0);
       if (LINE_END_PUNCT.test(lastCh) || LINE_START_KEEP.test(nextFirst)) {
-        out.push(l);                     // 標點結尾／數字英文開頭 → 保留行界
+        out.push(l);                     // 分段 → 保留，加多一個 endline（空行）
       } else {
         out[out.length - 1] = prev + l;  // 冇標點 → 合併
       }
     }
-    return out.join('\n');
+    return out.join('\n\n');
   }).join('\n\n');
 }
 
