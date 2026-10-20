@@ -182,7 +182,7 @@ async function analyzePage(imageDataUrl) {
   return aiComplete([{
     role: 'user',
     content: [
-      { type: 'text', text: '你係書籍頁面文字識別助理。請從呢張書本頁面照片中提取以下欄位，只輸出 JSON，唔好加任何其他文字：{"topic":"本頁主題/標題，若無則空字串","content":"頁面正文完整如實轉錄成純文字，保留段落","chapter":"章節名稱，若頁首/頁尾有章節資訊就填，否則空字串","page":"頁碼，若頁首/頁尾有頁碼就填，否則空字串"}' },
+      { type: 'text', text: 'You are a book page text extraction assistant. Analyze the book page photo and return ONLY valid JSON, with no other text: {"topic":"title/subject of this page, empty string if none","content":"full verbatim transcription of the page body text","chapter":"chapter name if present in the page header/footer, otherwise empty string","page":"page number if present in the page header/footer, otherwise empty string"}. Transcription rules: do NOT preserve the layout line breaks of the photo; output continuous text. Insert a single line break ONLY where the original page has a distinct paragraph break (a new paragraph). Never add line breaks for column layout, line wrapping, or spacing. Keep the original wording verbatim.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
   }]);
@@ -193,7 +193,7 @@ async function recognizeBook(imageDataUrl) {
   return aiComplete([{
     role: 'user',
     content: [
-      { type: 'text', text: '你係書籍封面識別助理。請根據呢張書籍封面/書名頁照片識別書名及作者，只輸出 JSON：{"book_title":"書名","author":"作者"}。如果無法確定就留空字串，唔好加任何其他文字。' },
+      { type: 'text', text: 'You are a book cover recognition assistant. Identify the book title and the author from this book cover / title page photo. Return ONLY valid JSON, with no other text: {"book_title":"book title","author":"author name"}. Leave a field as an empty string if you cannot determine it.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
   }]);
@@ -333,37 +333,102 @@ function renderResults() {
 }
 
 /* =========================================================
- * 現有檔案 dropdown
+ * 現有檔案 popup（揀選後 append）
  * ========================================================= */
-async function refreshExistingFiles() {
-  const sel = $('#file-existing');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— 新檔案 —</option>';
+let filePickerData = [];   // [{file, book_title, author, count}]
+
+async function openFilePicker() {
+  const overlay = $('#file-picker-modal');
+  overlay.classList.remove('hidden');
+  $('#fp-filter-file').value = '';
+  $('#fp-filter-title').value = '';
+  $('#fp-filter-author').value = '';
+  filePickerData = [];
+  setBusy(true);
   try {
-    const files = await listJsonFiles();
-    files.forEach(f => {
-      const o = document.createElement('option');
-      o.value = f;
-      o.textContent = f;
-      sel.appendChild(o);
+    /* 合併 books.json 註冊表 + repo 根目錄所有書本 json */
+    const byFile = {};
+    try {
+      const raw = await getFileContent('books.json');
+      const reg = (raw && raw.content) ? JSON.parse(raw.content) : [];
+      if (Array.isArray(reg)) reg.forEach(b => { if (b.file) byFile[b.file] = { file: b.file, book_title: b.book_title || '', author: b.author || '' }; });
+    } catch (e) { /* ignore */ }
+    try {
+      const files = await listJsonFiles();
+      files.forEach(f => { if (!byFile[f]) byFile[f] = { file: f, book_title: '', author: '' }; });
+    } catch (e) { /* ignore */ }
+    filePickerData = Object.values(byFile).sort((a, b) => a.file.localeCompare(b.file));
+    /* 非同步補條目數 */
+    filePickerData.forEach(entry => {
+      getFileContent(entry.file).then(raw => {
+        if (raw && raw.content) {
+          try { entry.count = (JSON.parse(raw.content).rows || []).length; } catch (e) { entry.count = 0; }
+          if (!overlay.classList.contains('hidden')) renderFilePicker();
+        }
+      }).catch(() => { /* ignore */ });
     });
-    if (prev && files.includes(prev)) sel.value = prev;
-  } catch (e) { /* 未有 token 或 network 問題 */ }
+  } catch (e) {
+    toast('載入檔案列表失敗：' + e.message, 'error');
+  } finally {
+    setBusy(false);
+  }
+  renderFilePicker();
 }
 
-async function onExistingFileChange() {
-  const v = $('#file-existing').value;
-  if (!v) return;
-  $('#file-name').value = v;
+function closeFilePicker() {
+  $('#file-picker-modal').classList.add('hidden');
+}
+
+function renderFilePicker() {
+  const fFile = $('#fp-filter-file').value.trim().toLowerCase();
+  const fTitle = $('#fp-filter-title').value.trim().toLowerCase();
+  const fAuthor = $('#fp-filter-author').value.trim().toLowerCase();
+  const rows = filePickerData.filter(e =>
+    (!fFile || (e.file || '').toLowerCase().includes(fFile)) &&
+    (!fTitle || (e.book_title || '').toLowerCase().includes(fTitle)) &&
+    (!fAuthor || (e.author || '').toLowerCase().includes(fAuthor))
+  );
+  const tbody = $('#file-picker-table tbody');
+  tbody.innerHTML = '';
+  rows.forEach(e => {
+    const tr = document.createElement('tr');
+    const tdFile = document.createElement('td');
+    tdFile.textContent = e.file;
+    const tdTitle = document.createElement('td');
+    tdTitle.textContent = e.book_title || '—';
+    const tdAuthor = document.createElement('td');
+    tdAuthor.textContent = e.author || '—';
+    const tdCount = document.createElement('td');
+    tdCount.className = 'row-num';
+    tdCount.textContent = e.count != null ? String(e.count) : '—';
+    const tdAct = document.createElement('td');
+    tdAct.className = 'open-cell';
+    const btn = document.createElement('button');
+    btn.className = 'btn small primary';
+    btn.textContent = '揀選';
+    btn.onclick = () => pickExistingFile(e.file);
+    tdAct.appendChild(btn);
+    tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center">冇相符嘅書檔</td></tr>';
+  $('#fp-hint').textContent = '共 ' + rows.length + ' 本書檔（揀選後會設定為儲存目標，新內容 append 喺後面）';
+}
+
+async function pickExistingFile(file) {
+  closeFilePicker();
+  $('#file-name').value = file;
   try {
-    const raw = await getFileContent(v);
+    const raw = await getFileContent(file);
     if (raw && raw.content) {
       const b = JSON.parse(raw.content);
       if (b.book_title && !$('#book-title').value.trim()) $('#book-title').value = b.book_title;
       if (b.author && !$('#book-author').value.trim()) $('#book-author').value = b.author;
-      toast(`已選擇 ${v}，新內容會 append 喺後面（現有 ${(b.rows || []).length} 條）`);
+      toast(`已選擇 ${file}，新內容會 append 喺後面（現有 ${(b.rows || []).length} 條）`);
+    } else {
+      toast('已選擇 ' + file);
     }
-  } catch (e) { toast('讀取 ' + v + ' 失敗：' + e.message, 'error'); }
+  } catch (e) { toast('讀取 ' + file + ' 失敗：' + e.message, 'error'); }
 }
 
 /* =========================================================
@@ -373,9 +438,7 @@ async function saveBook() {
   const bookTitle = $('#book-title').value.trim();
   const author = $('#book-author').value.trim();
   let fileName = $('#file-name').value.trim();
-  const existing = $('#file-existing').value;
-  if (!fileName && existing) fileName = existing;
-  if (!fileName) { toast('請輸入儲存檔名（xxxx.json）', 'warn'); return; }
+  if (!fileName) { toast('請輸入儲存檔名（xxxx.json），或撳「📂 選擇現有檔案」', 'warn'); return; }
   if (!/\.json$/i.test(fileName)) fileName += '.json';
 
   const rows = results
@@ -411,7 +474,6 @@ async function saveBook() {
 
     await writeFile(fileName, JSON.stringify(book, null, 2), `Add book content to ${fileName}`);
     await writeFile('books.json', JSON.stringify(reg, null, 2), 'Update books registry');
-    await refreshExistingFiles();
     toast('已儲存到 ' + fileName + '（共 ' + book.rows.length + ' 條）', 'success');
   } catch (e) {
     toast('儲存失敗：' + e.message, 'error');
@@ -773,8 +835,14 @@ function bindEvents() {
   $('#btn-clear').addEventListener('click', () => { results.length = 0; renderResults(); toast('已清空結果'); });
   $('#btn-clear-photos').addEventListener('click', () => { pageImages.length = 0; renderThumbs(); toast('已清除相片（記憶體內）'); });
 
-  /* 檔案名 / 現有檔案 */
-  $('#file-existing').addEventListener('change', onExistingFileChange);
+  /* 現有檔案 popup */
+  $('#btn-pick-existing').addEventListener('click', openFilePicker);
+  $('#file-picker-close').addEventListener('click', closeFilePicker);
+  $('#file-picker-modal').addEventListener('click', e => { if (e.target === $('#file-picker-modal')) closeFilePicker(); });
+  ['fp-filter-file', 'fp-filter-title', 'fp-filter-author'].forEach(id => {
+    $('#' + id).addEventListener('input', renderFilePicker);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#file-picker-modal').classList.contains('hidden')) closeFilePicker(); });
 
   /* 書庫 */
   $('#lib-filter').addEventListener('input', refreshLibrary);
@@ -816,7 +884,6 @@ async function init() {
 
   showTab('scan');
   renderStatusCheck();
-  refreshExistingFiles();
   refreshLibrary();
 }
 

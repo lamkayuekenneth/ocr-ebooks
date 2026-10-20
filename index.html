@@ -69,14 +69,12 @@
         <label class="grow">儲存檔名（xxxx.json）
           <input id="file-name" class="input" placeholder="例如 physics.json" autocomplete="off">
         </label>
-        <label class="grow">或選擇現有檔案（內容會 append 喺後面）
-          <select id="file-existing" class="input"></select>
-        </label>
+        <button type="button" class="btn" id="btn-pick-existing" style="align-self:flex-end">📂 選擇現有檔案（append）</button>
       </div>
       <div class="table-wrap">
         <table id="result-table">
           <thead>
-            <tr><th style="width:44px">#</th><th>Topic</th><th>Content</th><th style="width:110px">Chapter</th><th style="width:80px">Page</th><th style="width:44px"></th></tr>
+            <tr><th style="width:40px">#</th><th style="width:12%">Topic</th><th>Content</th><th style="width:11%">Chapter</th><th style="width:8%">Page</th><th style="width:40px"></th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -111,7 +109,7 @@
       <div class="table-wrap">
         <table id="book-detail-table">
           <thead>
-            <tr><th style="width:44px">#</th><th>Topic</th><th>Content</th><th style="width:110px">Chapter</th><th style="width:80px">Page</th><th style="width:44px"></th></tr>
+            <tr><th style="width:40px">#</th><th style="width:12%">Topic</th><th>Content</th><th style="width:11%">Chapter</th><th style="width:8%">Page</th><th style="width:40px"></th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -178,6 +176,29 @@
     </div>
   </section>
 </main>
+
+<div class="modal-overlay hidden" id="file-picker-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📂 選擇現有書檔（新內容會 append 喺後面）</h2>
+      <button type="button" class="modal-close" id="file-picker-close" title="關閉">✕</button>
+    </div>
+    <div class="picker-filters">
+      <input id="fp-filter-file" class="input" placeholder="🔍 篩選檔案名">
+      <input id="fp-filter-title" class="input" placeholder="🔍 篩選書名">
+      <input id="fp-filter-author" class="input" placeholder="🔍 篩選作者">
+    </div>
+    <div class="table-wrap">
+      <table id="file-picker-table">
+        <thead>
+          <tr><th>檔案</th><th>書名</th><th>作者</th><th>條目</th><th style="width:70px"></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="hint" id="fp-hint"></p>
+  </div>
+</div>
 
 <div id="toast" class="toast"></div>
 <script src="app.js"></script>

@@ -197,6 +197,7 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
 /* ---------- Tables ---------- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; min-width: 760px; }
+#result-table, #book-detail-table { table-layout: fixed; min-width: 640px; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
 th { background: #f8fafc; font-size: 13px; color: var(--muted); position: sticky; top: 0; }
 tbody tr:hover { background: #fafbfe; }
@@ -210,9 +211,42 @@ td input, td textarea {
 }
 td input:hover, td textarea:hover { border-color: var(--border); background: #fff; }
 td input:focus, td textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
-td textarea { min-height: 52px; }
+td textarea { min-height: 90px; }
 .row-num { color: var(--muted); font-size: 12px; }
 .open-cell { text-align: center; }
+
+/* ---------- Modal（現有檔案揀選） ---------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, .55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 90; padding: 16px;
+}
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
+  width: min(920px, 100%);
+  max-height: 86vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { margin: 0; font-size: 16px; }
+.modal-close {
+  border: none; background: #f1f5f9; border-radius: 8px;
+  width: 30px; height: 30px; font-size: 15px; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { background: #e2e8f0; }
+.picker-filters {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; padding: 14px 18px;
+}
+.modal .table-wrap { margin: 0 18px 4px; overflow-y: auto; }
+.modal .hint { padding: 0 18px 14px; }
 
 /* ---------- Toast ---------- */
 .toast {
@@ -253,6 +287,7 @@ td textarea { min-height: 52px; }
   .tab { flex: 1; font-size: 13px; padding: 8px 4px; }
   main { padding: 12px; }
   .row-2, .form-grid { grid-template-columns: 1fr; }
+  .picker-filters { grid-template-columns: 1fr; }
   .card { padding: 14px; }
   .thumb-grid { grid-template-columns: repeat(2, 1fr); }
   .btn { flex: 1; }
