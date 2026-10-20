@@ -6,7 +6,7 @@
 
 1. **Desktop / Mobile 自適應 UI**（手機底部導航、大按鈕、可橫向捲動表格）
 2. **四種方式加入書頁相片**：📸 即時影相、🖼 瀏覽上傳、Drag & Drop、Clipboard Paste（Ctrl+V）
-3. 書頁照片會經 AI 讀出 `topic / content / chapter / page`（頁首頁尾嘅章節、頁碼會自動抽）
+3. 書頁照片會經 AI 讀出 `topic / content / chapter / page`（頁首頁尾嘅章節、頁碼會自動抽）；轉錄規則：**唔跟相片排版，只跟段落**——正文連續輸出，只有原文明顯分段先至用換行分隔（所有 AI prompt 用英文撰寫）
 4. 經用戶喺表格核對（可直接編輯）後，儲存做 `xxxx.json`（檔案名由用戶輸入）；可以揀 repo 入面已存在嘅書檔，**新內容會 append 喺後面**
 5. 結果以表格顯示，表格上方有書名及作者輸入欄（會一併寫入 `xxxx.json` 同 `books.json`）
 6. **認書名介面**：手動輸入之外，仲可以影相 / 上傳 / 拖放 / 貼上封面圖片，AI 自動認書名及作者並填入輸入框；書名及作者存喺單一 `books.json`（`book_title, author`），書內容存喺各自嘅 `xxxx.json`
