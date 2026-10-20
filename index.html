@@ -37,6 +37,7 @@
         <div class="btn-group">
           <button type="button" class="btn" id="btn-book-camera">📸 即時影相</button>
           <button type="button" class="btn" id="btn-book-browse">🖼 瀏覽上傳</button>
+          <button type="button" class="btn" id="btn-book-paste">📋 貼上剪貼簿</button>
         </div>
         <input type="file" id="book-file-input" accept="image/*" hidden>
         <input type="file" id="book-camera-input" accept="image/*" capture="environment" hidden>
@@ -52,6 +53,7 @@
         <div class="btn-group">
           <button type="button" class="btn primary" id="btn-camera">📸 即時影相</button>
           <button type="button" class="btn primary" id="btn-browse">🖼 瀏覽上傳</button>
+          <button type="button" class="btn primary" id="btn-page-paste">📋 貼上剪貼簿</button>
           <button type="button" class="btn accent" id="btn-analyze">🤖 AI 分析</button>
         </div>
         <input type="file" id="page-file-input" accept="image/*" multiple hidden>
@@ -83,7 +85,7 @@
       <div class="table-wrap">
         <table id="lib-table">
           <thead>
-            <tr><th>檔案</th><th>書名</th><th>作者</th><th>條目</th><th style="width:140px"></th></tr>
+            <tr><th style="width:22%">檔案</th><th style="width:30%">書名</th><th style="width:30%">作者</th><th style="width:10%">條目</th><th style="width:80px"></th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -208,6 +210,9 @@
     </div>
     <div class="modal-body">
       <p class="hint" id="book-meta-file"></p>
+      <label>檔名（可以重新命名，自動補 .json）
+        <input id="book-meta-filename" class="input" autocomplete="off">
+      </label>
       <div class="row-2">
         <label>書名
           <input id="book-meta-title" class="input" placeholder="書名（可以手動輸入）" autocomplete="off">
@@ -221,6 +226,7 @@
         <div class="btn-group">
           <button type="button" class="btn" id="btn-book-meta-camera">📸 即時影相</button>
           <button type="button" class="btn" id="btn-book-meta-browse">🖼 瀏覽上傳</button>
+          <button type="button" class="btn" id="btn-book-meta-paste">📋 貼上剪貼簿</button>
         </div>
         <input type="file" id="book-meta-file-input" accept="image/*" hidden>
         <input type="file" id="book-meta-camera-input" accept="image/*" capture="environment" hidden>

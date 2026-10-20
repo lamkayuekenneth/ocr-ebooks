@@ -228,6 +228,8 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; min-width: 760px; }
 #result-table, #book-detail-table { table-layout: fixed; min-width: 640px; }
+#lib-table, #file-picker-table { table-layout: fixed; width: 100%; }
+#lib-table th, #lib-table td, #file-picker-table th, #file-picker-table td { word-break: break-all; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
 th { background: #f6ead6; font-size: 13px; color: var(--muted); position: sticky; top: 0; }
 tbody tr:hover { background: #fdf6ea; }

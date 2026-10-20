@@ -723,11 +723,16 @@ async function refreshLibrary() {
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
     fileBtn.textContent = String(b.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
-    fileBtn.title = b.file + '（撳入去編輯書名 / 作者）';
+    fileBtn.title = b.file + '（撳入去編輯書名 / 作者 / 檔名）';
     fileBtn.onclick = () => openBookMetaPopup(b.file);
     tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
-    tdTitle.textContent = b.book_title || '—';
+    const titleBtn = document.createElement('button');
+    titleBtn.className = 'btn-link';
+    titleBtn.textContent = b.book_title || '—';
+    titleBtn.title = '撳入去開啟內容';
+    titleBtn.onclick = () => openBook(b.file);
+    tdTitle.appendChild(titleBtn);
     const tdAuthor = document.createElement('td');
     tdAuthor.textContent = b.author || '—';
     const tdCount = document.createElement('td');
@@ -735,16 +740,11 @@ async function refreshLibrary() {
     tdCount.textContent = '—';
     const tdAct = document.createElement('td');
     tdAct.className = 'open-cell';
-    const btn = document.createElement('button');
-    btn.className = 'btn small primary';
-    btn.textContent = '開啟';
-    btn.onclick = () => openBook(b.file);
     const btnDel = document.createElement('button');
     btnDel.className = 'btn small danger';
     btnDel.textContent = '刪除';
     btnDel.title = '刪除成個 json 檔案';
     btnDel.onclick = () => deleteBookFile(b.file);
-    tdAct.appendChild(btn);
     tdAct.appendChild(btnDel);
     tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
     tbody.appendChild(tr);
@@ -788,14 +788,37 @@ async function deleteBookFile(file) {
   }
 }
 
-/* =========================================================
- * 書庫：編輯書名 / 作者 popup（可影相 / 上傳 / 拖放 / 貼上封面 AI 認）
- * ========================================================= */
+/* 實體「貼上」button：直接讀剪貼簿圖片（target: 'book' 封面 / 'meta' 書庫 popup / 其他=頁面） */
+async function pasteFromClipboard(target) {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.read) { toast('呢個瀏覽器唔支援讀剪貼簿', 'warn'); return; }
+    const items = await navigator.clipboard.read();
+    let picked = false;
+    for (const it of items) {
+      const t = (it.types || []).find(x => x && x.startsWith('image/'));
+      if (t) {
+        const blob = await it.getType(t);
+        const file = new File([blob], 'paste.png', { type: t });
+        if (target === 'book') addBookImage(file);
+        else if (target === 'meta') addBookMetaImage(file);
+        else addPageFiles([file]);
+        picked = true;
+        break;
+      }
+    }
+    if (!picked) toast('剪貼簿入面冇圖片', 'warn');
+  } catch (e) {
+    toast('讀取剪貼簿失敗：' + e.message, 'error');
+  }
+}
+
+/* 書庫：編輯書名 / 作者 popup（可影相 / 上傳 / 拖放 / 貼上封面 AI 認） */
 let bookMetaFile = null;
 
 async function openBookMetaPopup(file) {
   bookMetaFile = file;
   $('#book-meta-file').textContent = file;
+  $('#book-meta-filename').value = String(file).replace(/^books\//, '');
   /* 用現有記錄填返書名 / 作者 */
   let title = '', author = '';
   try {
@@ -822,28 +845,39 @@ async function saveBookMeta() {
   if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
   const title = $('#book-meta-title').value.trim();
   const author = $('#book-meta-author').value.trim();
+  const oldFile = bookMetaFile;
+  /* 檔名可以重新命名（自動補 .json / books/ 前綴） */
+  let newName = $('#book-meta-filename').value.trim();
+  if (newName && !/\.json$/i.test(newName)) newName += '.json';
+  const newFile = newName ? (newName.startsWith('books/') ? newName : 'books/' + newName) : oldFile;
   savingLock = true;
   setBusy(true);
   try {
     /* 更新書檔入面嘅 book_title / author */
-    const raw = await getFileContent(bookMetaFile);
+    const raw = await getFileContent(oldFile);
     const book = (raw && raw.content) ? JSON.parse(raw.content) : { rows: [] };
     book.book_title = title;
     book.author = author;
-    await writeFile(bookMetaFile, JSON.stringify(book, null, 2), `Update book meta for ${bookMetaFile}`);
+    if (newFile === oldFile) {
+      await writeFile(oldFile, JSON.stringify(book, null, 2), `Update book meta for ${oldFile}`);
+    } else {
+      /* rename：新檔名寫入新 path，再刪舊 path */
+      await writeFile(newFile, JSON.stringify(book, null, 2), `Rename ${oldFile} to ${newFile}`);
+      await deleteFile(oldFile, `Delete old file ${oldFile} after rename`);
+    }
 
     /* 同步更新 books.json 註冊表 */
     const regRaw = await getFileContent('books.json');
     let reg = [];
     if (regRaw && regRaw.content) { try { reg = JSON.parse(regRaw.content); } catch (e) { reg = []; } }
     if (!Array.isArray(reg)) reg = [];
-    const idx = reg.findIndex(b => b.file === bookMetaFile);
-    if (idx >= 0) { reg[idx].book_title = title; reg[idx].author = author; }
-    else reg.push({ file: bookMetaFile, book_title: title, author });
+    const idx = reg.findIndex(b => b.file === oldFile);
+    if (idx >= 0) { reg[idx].file = newFile; reg[idx].book_title = title; reg[idx].author = author; }
+    else reg.push({ file: newFile, book_title: title, author });
     await writeFile('books.json', JSON.stringify(reg, null, 2), 'Update books registry');
 
-    $('#book-meta-status').textContent = '✅ 已儲存書名 / 作者';
-    toast('已儲存書名 / 作者', 'success');
+    $('#book-meta-status').textContent = '✅ 已儲存書名 / 作者' + (newFile !== oldFile ? '（檔名已改為 ' + newFile + '）' : '');
+    toast(newFile !== oldFile ? '已儲存並重新命名做 ' + newFile : '已儲存書名 / 作者', 'success');
     closeBookMetaPopup();
     refreshLibrary();
   } catch (e) {
@@ -1118,6 +1152,7 @@ function bindEvents() {
   /* 掃描頁：書頁相片 */
   $('#btn-browse').addEventListener('click', () => $('#page-file-input').click());
   $('#btn-camera').addEventListener('click', () => $('#page-camera-input').click());
+  $('#btn-page-paste').addEventListener('click', () => pasteFromClipboard('page'));
   $('#page-file-input').addEventListener('change', e => { addPageFiles(e.target.files); e.target.value = ''; });
   $('#page-camera-input').addEventListener('change', e => { addPageFiles(e.target.files); e.target.value = ''; });
 
@@ -1133,6 +1168,7 @@ function bindEvents() {
   /* 掃描頁：書名相片 */
   $('#btn-book-browse').addEventListener('click', () => $('#book-file-input').click());
   $('#btn-book-camera').addEventListener('click', () => $('#book-camera-input').click());
+  $('#btn-book-paste').addEventListener('click', () => pasteFromClipboard('book'));
   $('#book-file-input').addEventListener('change', e => { addBookImage(e.target.files[0]); e.target.value = ''; });
   $('#book-camera-input').addEventListener('change', e => { addBookImage(e.target.files[0]); e.target.value = ''; });
 
@@ -1198,6 +1234,7 @@ function bindEvents() {
   $('#btn-book-meta-save').addEventListener('click', saveBookMeta);
   $('#btn-book-meta-camera').addEventListener('click', () => $('#book-meta-camera-input').click());
   $('#btn-book-meta-browse').addEventListener('click', () => $('#book-meta-file-input').click());
+  $('#btn-book-meta-paste').addEventListener('click', () => pasteFromClipboard('meta'));
   $('#book-meta-file-input').addEventListener('change', e => { addBookMetaImage(e.target.files[0]); e.target.value = ''; });
   $('#book-meta-camera-input').addEventListener('change', e => { addBookMetaImage(e.target.files[0]); e.target.value = ''; });
   const bmDz = $('#book-meta-dropzone');
