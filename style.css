@@ -61,7 +61,7 @@ body {
 
 /* ---------- Layout ---------- */
 main {
-  max-width: 980px;
+  max-width: none;
   margin: 0 auto;
   padding: 16px;
 }
