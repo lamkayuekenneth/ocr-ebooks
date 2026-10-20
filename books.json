@@ -3,5 +3,10 @@
     "file": "Testing.json",
     "book_title": "Abc",
     "author": ""
+  },
+  {
+    "file": "_singletest.json",
+    "book_title": "測試書",
+    "author": "測試作者"
   }
 ]
