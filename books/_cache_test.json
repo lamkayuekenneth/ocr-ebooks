@@ -7,6 +7,12 @@
       "content": "內容一。",
       "chapter": "",
       "page": "1"
+    },
+    {
+      "topic": "cache測試2",
+      "content": "內容二。",
+      "chapter": "",
+      "page": "2"
     }
   ]
 }
