@@ -1,12 +1,1 @@
-[
-  {
-    "file": "Testing.json",
-    "book_title": "Abc",
-    "author": ""
-  },
-  {
-    "file": "_finaltest.json",
-    "book_title": "",
-    "author": ""
-  }
-]
+[{"file": "Testing.json", "book_title": "Abc", "author": ""}]
