@@ -5,5 +5,7 @@
   "github_token": "",
   "ai_model": "deepseek/deepseek-v4.1-flash",
   "base_url": "https://openrouter.ai/api/v1",
-  "api_key": ""
+  "api_key": "",
+  "title_model": "deepseek/deepseek-v4.1-flash",
+  "title_api_key": ""
 }

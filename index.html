@@ -97,7 +97,7 @@
       <div class="table-wrap">
         <table id="book-detail-table">
           <thead>
-            <tr><th style="width:40px">#</th><th style="width:12%">Topic</th><th>Content</th><th style="width:11%">Chapter</th><th style="width:8%">Page</th><th style="width:40px"></th></tr>
+            <tr><th style="width:36px">#</th><th style="width:9%">Topic</th><th style="width:76%">Content</th><th style="width:6%">Chapter</th><th style="width:5%">Page</th><th style="width:36px"></th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -126,14 +126,23 @@
         <label>GitHub Token（要 Contents 讀寫權限）
           <input id="set-gh-token" class="input" type="password" autocomplete="off">
         </label>
-        <label>AI Model
+        <label>AI Model（讀內容）
           <input id="set-model" class="input" autocomplete="off">
         </label>
         <label>Base URL
           <input id="set-base-url" class="input" autocomplete="off">
         </label>
-        <label class="span-2">API Key
+        <label class="span-2">API Key（讀內容）
           <input id="set-api-key" class="input" type="password" autocomplete="off">
+        </label>
+      </div>
+      <h3 class="form-divider">認書名（封面）專用設定 —— 唔填就自動用上面「讀內容」嗰組</h3>
+      <div class="form-grid">
+        <label>AI Model（認書名）
+          <input id="set-title-model" class="input" autocomplete="off">
+        </label>
+        <label>API Key（認書名）
+          <input id="set-title-api-key" class="input" type="password" autocomplete="off">
         </label>
       </div>
       <div class="security-note">
@@ -151,8 +160,10 @@
       <div class="status-table">
         <div class="st-row"><span class="st-label">GitHub Token（PAT）</span><span class="st-value" id="st-gh-token">—</span></div>
         <div class="st-row"><span class="st-label">GitHub Owner / Repo</span><span class="st-value" id="st-gh-repo">—</span></div>
-        <div class="st-row"><span class="st-label">API Key</span><span class="st-value" id="st-api-key">—</span></div>
-        <div class="st-row"><span class="st-label">AI Model</span><span class="st-value" id="st-model">—</span></div>
+        <div class="st-row"><span class="st-label">API Key（讀內容）</span><span class="st-value" id="st-api-key">—</span></div>
+        <div class="st-row"><span class="st-label">AI Model（讀內容）</span><span class="st-value" id="st-model">—</span></div>
+        <div class="st-row"><span class="st-label">API Key（認書名）</span><span class="st-value" id="st-title-api-key">—</span></div>
+        <div class="st-row"><span class="st-label">AI Model（認書名）</span><span class="st-value" id="st-title-model">—</span></div>
         <div class="st-row"><span class="st-label">Base URL</span><span class="st-value" id="st-base-url">—</span></div>
       </div>
       <div class="btn-group">
@@ -185,6 +196,42 @@
       </table>
     </div>
     <p class="hint" id="fp-hint"></p>
+  </div>
+</div>
+
+<!-- 書庫：編輯書名 / 作者 popup -->
+<div class="modal-overlay hidden" id="book-meta-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📚 編輯書名及作者</h2>
+      <button type="button" class="modal-close" id="book-meta-close" title="關閉">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" id="book-meta-file"></p>
+      <div class="row-2">
+        <label>書名
+          <input id="book-meta-title" class="input" placeholder="書名（可以手動輸入）" autocomplete="off">
+        </label>
+        <label>作者
+          <input id="book-meta-author" class="input" placeholder="作者" autocomplete="off">
+        </label>
+      </div>
+      <div class="book-dropzone" id="book-meta-dropzone">
+        <p class="dz-text">📕 將書名 / 封面圖片拖到呢度，或撳下面按鈕，AI 會自動認書名及作者</p>
+        <div class="btn-group">
+          <button type="button" class="btn" id="btn-book-meta-camera">📸 即時影相</button>
+          <button type="button" class="btn" id="btn-book-meta-browse">🖼 瀏覽上傳</button>
+        </div>
+        <input type="file" id="book-meta-file-input" accept="image/*" hidden>
+        <input type="file" id="book-meta-camera-input" accept="image/*" capture="environment" hidden>
+        <p class="hint">提示：貼上（Ctrl+V）圖片時，如果滑鼠指住呢個框，就會當封面處理。</p>
+      </div>
+      <div class="btn-group" style="margin-top:12px">
+        <button type="button" class="btn success" id="btn-book-meta-save">💾 儲存書名 / 作者</button>
+        <button type="button" class="btn" id="btn-book-meta-cancel">取消</button>
+      </div>
+      <div id="book-meta-status" class="status"></div>
+    </div>
   </div>
 </div>
 

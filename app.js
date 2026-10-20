@@ -93,7 +93,9 @@ const DEFAULT_SETTINGS = {
   github_token: '',
   ai_model: 'deepseek/deepseek-v4.1-flash',
   base_url: 'https://openrouter.ai/api/v1',
-  api_key: ''
+  api_key: '',
+  title_model: 'deepseek/deepseek-v4.1-flash',
+  title_api_key: ''
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -213,10 +215,12 @@ async function deleteFile(path, message) {
 /* =========================================================
  * AI（OpenRouter 兼容 /chat/completions）
  * ========================================================= */
-async function aiComplete(messages, { json = true, maxTokens = 4096 } = {}) {
-  if (!settings.api_key) throw new Error('請先喺設定頁輸入 API Key');
+async function aiComplete(messages, { json = true, maxTokens = 4096, key, model } = {}) {
+  const k = key || settings.api_key;
+  const m = model || settings.ai_model;
+  if (!k) throw new Error('請先喺設定頁輸入 API Key');
   const url = settings.base_url.replace(/\/+$/, '') + '/chat/completions';
-  const body = { model: settings.ai_model, messages, max_tokens: maxTokens };
+  const body = { model: m, messages, max_tokens: maxTokens };
   if (json) body.response_format = { type: 'json_object' };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 60000);
@@ -225,7 +229,7 @@ async function aiComplete(messages, { json = true, maxTokens = 4096 } = {}) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + settings.api_key,
+        'Authorization': 'Bearer ' + k,
         'HTTP-Referer': 'https://github.com/' + settings.github_owner + '/' + settings.github_repo,
         'X-Title': 'OCR eBooks'
       },
@@ -304,7 +308,7 @@ async function analyzePage(imageDataUrl) {
   }]);
 }
 
-/* 認書名及作者（返回 {book_title, author}） */
+/* 認書名及作者（返回 {book_title, author}）——用「書名專用」API Key / Model（未設則 fallback 一般） */
 async function recognizeBook(imageDataUrl) {
   return aiComplete([{
     role: 'user',
@@ -312,7 +316,7 @@ async function recognizeBook(imageDataUrl) {
       { type: 'text', text: 'You are a book cover reader. Read ONLY the book title and the author name printed on this cover photo. Rules: (1) book_title = the largest, most prominent text on the cover — a cover ALWAYS has a title, so if you can see a large heading (horizontal, or vertical with characters stacked top-to-bottom), transcribe it in full and join the stacked characters into one continuous title with NO spaces; do not leave book_title empty unless there is genuinely no readable title; (2) author = the short person name (usually 2-4 characters) marked with "著" / "著者" / "by" / "written by", usually printed in a corner of the cover; read each character very carefully because the name may be small or vertical; if you are not confident about the exact characters, return an empty string for author; (3) IGNORE every other cover element: year numbers, dates, publisher names, slogans, blurbs, background decorations and small text; (4) NEVER guess from memory or general knowledge — only read what is actually printed in this photo. Return ONLY valid JSON, with no other text: {"book_title":"","author":""}.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
-  }]);
+  }], { key: settings.title_api_key || settings.api_key, model: settings.title_model || settings.ai_model });
 }
 
 /* =========================================================
@@ -586,7 +590,7 @@ function renderFilePicker() {
   rows.forEach(e => {
     const tr = document.createElement('tr');
     const tdFile = document.createElement('td');
-    tdFile.textContent = e.file;
+    tdFile.textContent = String(e.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
     const tdTitle = document.createElement('td');
     tdTitle.textContent = e.book_title || '—';
     const tdAuthor = document.createElement('td');
@@ -716,7 +720,12 @@ async function refreshLibrary() {
   rows.forEach(b => {
     const tr = document.createElement('tr');
     const tdFile = document.createElement('td');
-    tdFile.textContent = b.file;
+    const fileBtn = document.createElement('button');
+    fileBtn.className = 'btn-link';
+    fileBtn.textContent = String(b.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
+    fileBtn.title = b.file + '（撳入去編輯書名 / 作者）';
+    fileBtn.onclick = () => openBookMetaPopup(b.file);
+    tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
     tdTitle.textContent = b.book_title || '—';
     const tdAuthor = document.createElement('td');
@@ -775,6 +784,93 @@ async function deleteBookFile(file) {
     toast('刪除失敗：' + e.message, 'error');
   } finally {
     savingLock = false;
+    setBusy(false);
+  }
+}
+
+/* =========================================================
+ * 書庫：編輯書名 / 作者 popup（可影相 / 上傳 / 拖放 / 貼上封面 AI 認）
+ * ========================================================= */
+let bookMetaFile = null;
+
+async function openBookMetaPopup(file) {
+  bookMetaFile = file;
+  $('#book-meta-file').textContent = file;
+  /* 用現有記錄填返書名 / 作者 */
+  let title = '', author = '';
+  try {
+    const regRaw = await getFileContent('books.json');
+    if (regRaw && regRaw.content) {
+      const reg = JSON.parse(regRaw.content);
+      const b = (Array.isArray(reg) ? reg : []).find(x => x.file === file);
+      if (b) { title = b.book_title || ''; author = b.author || ''; }
+    }
+  } catch (e) { /* ignore */ }
+  $('#book-meta-title').value = title;
+  $('#book-meta-author').value = author;
+  $('#book-meta-status').textContent = '';
+  $('#book-meta-modal').classList.remove('hidden');
+}
+
+function closeBookMetaPopup() {
+  bookMetaFile = null;
+  $('#book-meta-modal').classList.add('hidden');
+}
+
+async function saveBookMeta() {
+  if (!bookMetaFile) return;
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
+  const title = $('#book-meta-title').value.trim();
+  const author = $('#book-meta-author').value.trim();
+  savingLock = true;
+  setBusy(true);
+  try {
+    /* 更新書檔入面嘅 book_title / author */
+    const raw = await getFileContent(bookMetaFile);
+    const book = (raw && raw.content) ? JSON.parse(raw.content) : { rows: [] };
+    book.book_title = title;
+    book.author = author;
+    await writeFile(bookMetaFile, JSON.stringify(book, null, 2), `Update book meta for ${bookMetaFile}`);
+
+    /* 同步更新 books.json 註冊表 */
+    const regRaw = await getFileContent('books.json');
+    let reg = [];
+    if (regRaw && regRaw.content) { try { reg = JSON.parse(regRaw.content); } catch (e) { reg = []; } }
+    if (!Array.isArray(reg)) reg = [];
+    const idx = reg.findIndex(b => b.file === bookMetaFile);
+    if (idx >= 0) { reg[idx].book_title = title; reg[idx].author = author; }
+    else reg.push({ file: bookMetaFile, book_title: title, author });
+    await writeFile('books.json', JSON.stringify(reg, null, 2), 'Update books registry');
+
+    $('#book-meta-status').textContent = '✅ 已儲存書名 / 作者';
+    toast('已儲存書名 / 作者', 'success');
+    closeBookMetaPopup();
+    refreshLibrary();
+  } catch (e) {
+    $('#book-meta-status').textContent = '❌ 儲存失敗：' + e.message;
+    toast('儲存失敗：' + e.message, 'error');
+  } finally {
+    savingLock = false;
+    setBusy(false);
+  }
+}
+
+/* 書庫 popup：封面相 → AI 認書名 */
+async function addBookMetaImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  try {
+    const url = await readFileAsDataURL(file);
+    setBusy(true);
+    $('#book-meta-status').textContent = '🤖 認書名及作者中...';
+    const aiUrl = await resizeImageDataUrl(url, 1600);
+    const r = await recognizeBook(aiUrl);
+    if (r.book_title) $('#book-meta-title').value = r.book_title;
+    if (r.author) $('#book-meta-author').value = r.author;
+    $('#book-meta-status').textContent = r.book_title ? '✅ 已自動填入，請核對後儲存' : '⚠️ AI 未能確定，可以手動輸入';
+  } catch (e) {
+    $('#book-meta-status').textContent = '❌ 認書名失敗：' + e.message;
+    toast('認書名失敗：' + e.message, 'error');
+  } finally {
     setBusy(false);
   }
 }
@@ -876,7 +972,8 @@ async function saveDetail() {
  * ========================================================= */
 const SETTING_MAP = {
   owner: 'github_owner', repo: 'github_repo', branch: 'github_branch',
-  'gh-token': 'github_token', model: 'ai_model', 'base-url': 'base_url', 'api-key': 'api_key'
+  'gh-token': 'github_token', model: 'ai_model', 'base-url': 'base_url', 'api-key': 'api_key',
+  'title-model': 'title_model', 'title-api-key': 'title_api_key'
 };
 
 function bindSettingsForm() {
@@ -894,6 +991,8 @@ function saveSettings() {
   settings.ai_model = $('#set-model').value.trim() || DEFAULT_SETTINGS.ai_model;
   settings.base_url = $('#set-base-url').value.trim() || DEFAULT_SETTINGS.base_url;
   settings.api_key = $('#set-api-key').value.trim();
+  settings.title_model = $('#set-title-model').value.trim() || DEFAULT_SETTINGS.title_model;
+  settings.title_api_key = $('#set-title-api-key').value.trim();
   saveLocalSettings();
   const msg = '設定已儲存（只存喺本機瀏覽器 localStorage，唔會寫入 repo）';
   $('#settings-status').textContent = msg;
@@ -922,6 +1021,8 @@ function renderStatusCheck() {
   set('st-gh-repo', (settings.github_owner && settings.github_repo) ? '✓ ' + settings.github_owner + ' / ' + settings.github_repo : '✗ 未設定', !!(settings.github_owner && settings.github_repo));
   set('st-api-key', settings.api_key ? '✓ 已設定（尾4位：' + maskKey(settings.api_key) + '）' : '✗ 未設定', !!settings.api_key);
   set('st-model', settings.ai_model || '—', !!settings.ai_model);
+  set('st-title-api-key', settings.title_api_key ? '✓ 已設定（尾4位：' + maskKey(settings.title_api_key) + '）' : '（未設，用一般 API Key）', !!settings.title_api_key);
+  set('st-title-model', settings.title_model || '—', !!settings.title_model);
   set('st-base-url', settings.base_url || '—', !!settings.base_url);
 }
 
@@ -1060,6 +1161,7 @@ function bindEvents() {
         const file = it.getAsFile();
         if (file) {
           if (hoverZone === 'book') addBookImage(file);
+          else if (hoverZone === 'meta') addBookMetaImage(file);
           else addPageFiles([file]);
         }
         e.preventDefault();
@@ -1090,6 +1192,32 @@ function bindEvents() {
     window.scrollTo({ top: 0 });
   });
 
+  /* 書庫：編輯書名 / 作者 popup */
+  $('#book-meta-close').addEventListener('click', closeBookMetaPopup);
+  $('#btn-book-meta-cancel').addEventListener('click', closeBookMetaPopup);
+  $('#btn-book-meta-save').addEventListener('click', saveBookMeta);
+  $('#btn-book-meta-camera').addEventListener('click', () => $('#book-meta-camera-input').click());
+  $('#btn-book-meta-browse').addEventListener('click', () => $('#book-meta-file-input').click());
+  $('#book-meta-file-input').addEventListener('change', e => { addBookMetaImage(e.target.files[0]); e.target.value = ''; });
+  $('#book-meta-camera-input').addEventListener('change', e => { addBookMetaImage(e.target.files[0]); e.target.value = ''; });
+  const bmDz = $('#book-meta-dropzone');
+  bmDz.addEventListener('dragover', e => { e.preventDefault(); bmDz.classList.add('over'); hoverZone = 'meta'; });
+  bmDz.addEventListener('dragleave', () => bmDz.classList.remove('over'));
+  bmDz.addEventListener('drop', e => {
+    e.preventDefault();
+    bmDz.classList.remove('over');
+    addBookMetaImage(e.dataTransfer.files[0]);
+  });
+  bmDz.addEventListener('mouseenter', () => { hoverZone = 'meta'; });
+  bmDz.addEventListener('mouseleave', () => { hoverZone = 'page'; });
+  ['book-meta-title', 'book-meta-author'].forEach(id => {
+    $('#' + id).addEventListener('focus', () => { hoverZone = 'meta'; });
+    $('#' + id).addEventListener('blur', () => { hoverZone = 'page'; });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('#book-meta-modal').classList.contains('hidden')) closeBookMetaPopup();
+  });
+
   /* 設定 */
   $('#btn-save-settings').addEventListener('click', saveSettings);
   $('#btn-test-ai').addEventListener('click', testAI);
@@ -1112,7 +1240,7 @@ async function init() {
     const raw = await getFileContent('settings.json');
     if (raw && raw.content) {
       const repo = JSON.parse(raw.content);
-      const { github_token, api_key, ...safeRepo } = repo;
+      const { github_token, api_key, title_api_key, ...safeRepo } = repo;
       settings = { ...DEFAULT_SETTINGS, ...safeRepo };
       loadLocalSettings();      /* 再套 local 覆蓋 */
       bindSettingsForm();

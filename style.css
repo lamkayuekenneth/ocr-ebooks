@@ -157,6 +157,34 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
 .btn.small { padding: 5px 10px; font-size: 13px; border-radius: 8px; }
 .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 
+/* 書庫：檔名撳掣（撳入去編輯書名 / 作者） */
+.btn-link {
+  border: none;
+  background: transparent;
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+}
+.btn-link:hover { color: var(--primary); }
+
+/* 設定頁分組標題 */
+.form-divider {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+}
+.modal-body { padding: 0 18px 16px; }
+
 /* ---------- Dropzones ---------- */
 .dropzone, .book-dropzone {
   border: 2px dashed #d9c2a0;
