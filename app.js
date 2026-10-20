@@ -959,10 +959,37 @@ function renderDetailRows() {
     num.className = 'row-num';
     num.textContent = String(i + 1);
     tr.appendChild(num);
-    tr.appendChild(mk('input', 'topic', '主題'));
+
+    /* Topic（word wrap）+ Chapter / Page 細字並排——窄屏都顯示到 */
+    const topicTd = document.createElement('td');
+    const tc = document.createElement('div');
+    tc.className = 'topic-cell';
+    const tInput = document.createElement('textarea');
+    tInput.value = r.topic || '';
+    tInput.placeholder = '主題';
+    tInput.className = 'topic-input';
+    tInput.rows = 1;
+    tInput.addEventListener('input', () => { r.topic = tInput.value; autosize(tInput); });
+    const mp = document.createElement('div');
+    mp.className = 'meta-pair';
+    const ch = document.createElement('input');
+    ch.value = r.chapter || '';
+    ch.placeholder = '章節';
+    ch.className = 'meta-input';
+    ch.addEventListener('input', () => { r.chapter = ch.value; });
+    const pg = document.createElement('input');
+    pg.value = r.page || '';
+    pg.placeholder = '頁碼';
+    pg.className = 'meta-input';
+    pg.addEventListener('input', () => { r.page = pg.value; });
+    mp.appendChild(ch);
+    mp.appendChild(pg);
+    tc.appendChild(tInput);
+    tc.appendChild(mp);
+    topicTd.appendChild(tc);
+    tr.appendChild(topicTd);
+
     tr.appendChild(mk('textarea', 'content', '正文'));
-    tr.appendChild(mk('input', 'chapter', '章節'));
-    tr.appendChild(mk('input', 'page', '頁碼'));
     const act = document.createElement('td');
     const del = document.createElement('button');
     del.className = 'btn danger small';
@@ -979,7 +1006,7 @@ function renderDetailRows() {
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('textarea').forEach(autosize);
-  if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="6" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
+  if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="4" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
 }
 
 async function saveDetail() {

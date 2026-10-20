@@ -227,9 +227,30 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
 /* ---------- Tables ---------- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; min-width: 760px; }
-#result-table, #book-detail-table { table-layout: fixed; min-width: 640px; }
+#result-table, #book-detail-table { table-layout: fixed; width: 100%; }
 #lib-table, #file-picker-table { table-layout: fixed; width: 100%; }
 #lib-table th, #lib-table td, #file-picker-table th, #file-picker-table td { word-break: break-all; }
+
+/* 書庫詳情：Topic（wrap）+ Chapter/Page 細字 */
+.topic-cell { display: flex; flex-direction: column; gap: 6px; }
+.topic-cell textarea.topic-input {
+  width: 100%; min-width: 0;
+  font-size: 14px; font-weight: 600;
+  border: 1px solid transparent; background: transparent;
+  border-radius: 8px; padding: 4px 6px;
+  font-family: inherit; resize: none; overflow: hidden;
+  line-height: 1.45; word-break: break-word;
+}
+.topic-cell textarea.topic-input:focus { border-color: var(--primary); background: #fff; }
+.meta-pair { display: flex; gap: 6px; }
+.meta-pair input.meta-input {
+  flex: 1; min-width: 0;
+  font-size: 12px; color: var(--muted);
+  border: 1px solid transparent; background: transparent;
+  border-radius: 6px; padding: 3px 5px;
+  font-family: inherit;
+}
+.meta-pair input.meta-input:focus { border-color: var(--accent); background: #fff; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
 th { background: #f6ead6; font-size: 13px; color: var(--muted); position: sticky; top: 0; }
 tbody tr:hover { background: #fdf6ea; }
