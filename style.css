@@ -215,7 +215,7 @@ td input:hover, td textarea:hover { border-color: var(--border); background: #ff
 td input:focus, td textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
 td textarea { min-height: 90px; }
 .row-num { color: var(--muted); font-size: 12px; }
-.open-cell { text-align: center; }
+.open-cell { text-align: center; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; }
 
 /* ---------- Result Cards（每張相獨立直排） ---------- */
 .result-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }

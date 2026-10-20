@@ -7,12 +7,12 @@
 1. **Desktop / Mobile 自適應 UI**（手機底部導航、大按鈕、可橫向捲動表格）
 2. **四種方式加入書頁相片**：📸 即時影相、🖼 瀏覽上傳、Drag & Drop、Clipboard Paste（Ctrl+V）
 3. 書頁照片會經 AI 讀出 `topic / content / chapter / page`（頁首頁尾嘅章節、頁碼會自動抽）；轉錄規則：**唔跟相片排版，只跟段落**——正文連續輸出，只有原文明顯分段先至用換行分隔（所有 AI prompt 用英文撰寫）
-4. 經用戶喺表格核對（可直接編輯）後，儲存做 `xxxx.json`（檔案名由用戶輸入）；可以揀 repo 入面已存在嘅書檔，**新內容會 append 喺後面**
-5. 結果以表格顯示，表格上方有書名及作者輸入欄（會一併寫入 `xxxx.json` 同 `books.json`）
-6. **認書名介面**：手動輸入之外，仲可以影相 / 上傳 / 拖放 / 貼上封面圖片，AI 自動認書名及作者並填入輸入框；書名及作者存喺單一 `books.json`（`book_title, author`），書內容存喺各自嘅 `xxxx.json`
+4. 經用戶喺直排結果卡核對（可直接編輯）後，儲存做 `books/xxxx.json`（檔案名由用戶輸入，唔使打 `.json`）；可以揀 repo 入面已存在嘅書檔，**新內容會 append 喺後面**
+5. 每張相嘅結果以獨立直排卡顯示（Chapter → Topic → Page → Content），卡片上方有書名及作者輸入欄（會一併寫入 `xxxx.json` 同 `books.json`）；每張卡有獨立「確認儲存」/「捨棄」
+6. **認書名介面**：手動輸入之外，仲可以影相 / 上傳 / 拖放 / 貼上封面圖片，AI 自動認書名及作者並填入輸入框；書名及作者存喺單一 `books.json`（`book_title, author`），書內容存喺各自嘅 `books/xxxx.json`
 7. **相片私隱**：相片只會喺瀏覽器記憶體入面處理（以 base64 data URL 送入 AI API），**分析完唔會儲存去 repo 或任何地方**，刷新頁面即消失
-8. **書庫頁**：表格列出 repo 中所有 `xxxx.json`、書名、作者，頂頭有 filter 可以篩選
-9. 撳書庫中任何一本書 → 用同一種表格方式顯示內容（**按 page 排序**），每條 row 都可以**編輯 / 刪除**，撳「儲存修改」寫返入 repo
+8. **書庫頁**：表格列出 repo `books/` folder 中所有書檔、書名、作者，頂頭有 filter 可以篩選；每本書可以「開啟」或者「**刪除**」（刪除需要確認）
+9. 撳書庫中任何一本書 → 用同一種表格方式顯示內容（**按 page 排序**），每條 row 都可以**編輯 / 刪除**（刪除需要確認），撳「儲存修改」寫返入 repo
 10. **設定頁**：可設定 AI model（預設 `deepseek/deepseek-v4.1-flash`）、base URL（預設 `https://openrouter.ai/api/v1`）、API Key、GitHub repo / token；**key 只存喺瀏覽器 localStorage，唔會寫入 repo**（repo 入面嘅 `settings.json` 只保留非敏感預設）
 
 ## 🚀 部署
@@ -49,14 +49,14 @@
 
 ## 📁 資料格式
 
-**`books.json`**（書名 / 作者註冊表）：
+**`books.json`**（書名 / 作者註冊表，存喺 repo 根目錄）：
 ```json
 [
-  { "file": "physics.json", "book_title": "Physics", "author": "xxx" }
+  { "file": "books/physics.json", "book_title": "Physics", "author": "xxx" }
 ]
 ```
 
-**`xxxx.json`**（書內容，`topic+content` 為 1 row）：
+**`books/xxxx.json`**（書內容，存喺 repo 嘅 `books/` folder，`topic+content` 為 1 row）：
 ```json
 {
   "book_title": "Physics",

@@ -156,13 +156,26 @@ async function getLastPushInfo() {
   }
 }
 
-/* 列出 repo 根目錄所有書本 json（唔包 settings.json / books.json） */
+/* 列出 repo「books/」folder 入面所有書本 json */
 async function listJsonFiles() {
-  const d = await gh(`${repoBase()}/contents/?ref=${encodeURIComponent(settings.github_branch)}`);
+  const d = await gh(`${repoBase()}/contents/books?ref=${encodeURIComponent(settings.github_branch)}`);
   return (Array.isArray(d) ? d : [])
-    .filter(f => f.type === 'file' && /\.json$/i.test(f.name) && f.name !== 'settings.json' && f.name !== 'books.json')
-    .map(f => f.name)
+    .filter(f => f.type === 'file' && /\.json$/i.test(f.name))
+    .map(f => 'books/' + f.name)
     .sort((a, b) => a.localeCompare(b));
+}
+
+/* 刪除 repo 入面一個檔案 */
+async function deleteFile(path, message) {
+  if (!settings.github_token) throw new Error('請先喺設定頁輸入 GitHub Token');
+  const existing = await getFileContent(path);
+  if (!existing || !existing.sha) return;
+  const payload = {
+    message: message || `Delete ${path}`,
+    sha: existing.sha,
+    branch: settings.github_branch
+  };
+  await gh(repoBase() + '/contents/' + encodeURIComponent(path), { method: 'DELETE', body: JSON.stringify(payload) });
 }
 
 /* =========================================================
@@ -308,6 +321,7 @@ function renderThumbs() {
     rm.textContent = '✕';
     rm.title = '移除';
     rm.onclick = () => {
+      if (!confirm('確定移除呢張相？')) return;
       const i = pageImages.findIndex(x => x.id === img.id);
       if (i >= 0) pageImages.splice(i, 1);
       renderThumbs();
@@ -402,6 +416,7 @@ function renderResultCards() {
     discard.textContent = '🗑 捨棄';
     discard.title = '唔要呢張結果';
     discard.onclick = () => {
+      if (!confirm('確定捨棄「第 ' + (i + 1) + ' 張」嘅結果？')) return;
       const idx = results.findIndex(x => x.id === r.id);
       if (idx >= 0) results.splice(idx, 1);
       renderResultCards();
@@ -541,6 +556,7 @@ async function saveSingleRow(row) {
   let fileName = $('#file-name').value.trim();
   if (!fileName) { toast('請輸入儲存檔名（例如 physics），或撳「📂 選擇現有檔案」', 'warn'); return; }
   if (!/\.json$/i.test(fileName)) fileName += '.json';
+  if (!fileName.startsWith('books/')) fileName = 'books/' + fileName;   /* 書本 json 一律放 books/ folder */
 
   const data = { topic: (row.topic || '').trim(), content: (row.content || '').trim(), chapter: (row.chapter || '').trim(), page: (row.page || '').trim() };
   if (!data.topic && !data.content) { toast('呢張冇內容（topic 或 content 至少一樣）', 'warn'); return; }
@@ -633,7 +649,13 @@ async function refreshLibrary() {
     btn.className = 'btn small primary';
     btn.textContent = '開啟';
     btn.onclick = () => openBook(b.file);
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn small danger';
+    btnDel.textContent = '刪除';
+    btnDel.title = '刪除成個 json 檔案';
+    btnDel.onclick = () => deleteBookFile(b.file);
     tdAct.appendChild(btn);
+    tdAct.appendChild(btnDel);
     tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
     tbody.appendChild(tr);
     /* 非同步補條目數 */
@@ -648,6 +670,32 @@ async function refreshLibrary() {
   });
   if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center">未有書。去「掃描」頁加入新書，或檢查設定頁嘅 GitHub 資料。</td></tr>';
   $('#lib-hint').textContent = '共 ' + rows.length + ' 本書';
+}
+
+/* 刪除成個書本 json（連 books.json 註冊表一齊更新） */
+async function deleteBookFile(file) {
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
+  if (!confirm(`確定要刪除「${file}」成個檔案？\n呢個動作無法復原。`)) return;
+  savingLock = true;
+  setBusy(true);
+  try {
+    await deleteFile(file, `Delete ${file}`);
+    /* 同步喺 books.json 移除記錄 */
+    const regRaw = await getFileContent('books.json');
+    let reg = [];
+    if (regRaw && regRaw.content) { try { reg = JSON.parse(regRaw.content); } catch (e) { reg = []; } }
+    if (Array.isArray(reg)) {
+      const next = reg.filter(b => b.file !== file);
+      await writeFile('books.json', JSON.stringify(next, null, 2), 'Update books registry');
+    }
+    toast('已刪除 ' + file, 'success');
+    refreshLibrary();
+  } catch (e) {
+    toast('刪除失敗：' + e.message, 'error');
+  } finally {
+    savingLock = false;
+    setBusy(false);
+  }
 }
 
 /* Page 排序：先數字後文字 */
@@ -709,6 +757,7 @@ function renderDetailRows() {
     del.textContent = '✕';
     del.title = '刪除呢行';
     del.onclick = () => {
+      if (!confirm('確定刪除呢行（未儲存）？')) return;
       const idx = detailRows.findIndex(x => x.id === r.id);
       if (idx >= 0) detailRows.splice(idx, 1);
       renderDetailRows();
