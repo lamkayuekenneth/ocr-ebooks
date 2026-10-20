@@ -63,6 +63,26 @@ function readFileAsDataURL(file) {
   });
 }
 
+/* 將圖片縮細到 maxSide 以內（JPEG），慳 API 流量同避免圖片太大被 AI API 拒／超時 */
+function resizeImageDataUrl(dataUrl, maxSide = 1600) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      if (scale >= 1) { resolve(dataUrl); return; }
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = () => reject(new Error('圖片處理失敗'));
+    img.src = dataUrl;
+  });
+}
+
 /* =========================================================
  * 設定（優先序：預設 → repo settings.json → 本機 localStorage）
  * ========================================================= */
@@ -105,7 +125,7 @@ async function gh(path, opts = {}) {
     ...(opts.headers || {})
   };
   if (settings.github_token) headers['Authorization'] = 'Bearer ' + settings.github_token;
-  const res = await fetch('https://api.github.com' + path, { ...opts, headers });
+  const res = await fetch('https://api.github.com' + path, { ...opts, headers, cache: 'no-store' });
   if (!res.ok) {
     let msg = 'HTTP ' + res.status;
     try { const e = await res.json(); msg = e.message || msg; } catch (e) { /* ignore */ }
@@ -138,7 +158,19 @@ async function writeFile(path, content, message) {
     branch: settings.github_branch
   };
   if (existing && existing.sha) payload.sha = existing.sha;
-  await gh(repoBase() + '/contents/' + encodeURIComponent(path), { method: 'PUT', body: JSON.stringify(payload) });
+  const put = async () => gh(repoBase() + '/contents/' + encodeURIComponent(path), { method: 'PUT', body: JSON.stringify(payload) });
+  try {
+    await put();
+  } catch (e) {
+    /* 409 = SHA 衝突（例如跨 tab 並發寫入）：重新讀最新 sha 再試一次 */
+    if (e.status === 409) {
+      const latest = await getFileContent(path);
+      payload.sha = (latest && latest.sha) || undefined;
+      await put();
+    } else {
+      throw e;
+    }
+  }
 }
 
 /* 攞 repo 最新 push（commit）時間 + sha，用嚟顯示版本 */
@@ -186,24 +218,34 @@ async function aiComplete(messages, { json = true, maxTokens = 4096 } = {}) {
   const url = settings.base_url.replace(/\/+$/, '') + '/chat/completions';
   const body = { model: settings.ai_model, messages, max_tokens: maxTokens };
   if (json) body.response_format = { type: 'json_object' };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + settings.api_key,
-      'HTTP-Referer': 'https://github.com/' + settings.github_owner + '/' + settings.github_repo,
-      'X-Title': 'OCR eBooks'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    let msg = 'HTTP ' + res.status;
-    try { const e = await res.json(); msg = (e.error && (e.error.message || JSON.stringify(e.error))) || msg; } catch (e) { /* ignore */ }
-    throw new Error(msg);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + settings.api_key,
+        'HTTP-Referer': 'https://github.com/' + settings.github_owner + '/' + settings.github_repo,
+        'X-Title': 'OCR eBooks'
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const e = await res.json(); msg = (e.error && (e.error.message || JSON.stringify(e.error))) || msg; } catch (e) { /* ignore */ }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const text = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    return extractJSON(text);
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('AI 請求超時（60 秒），請再試一次');
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  const data = await res.json();
-  const text = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-  return extractJSON(text);
 }
 
 function extractJSON(text) {
@@ -267,7 +309,7 @@ async function recognizeBook(imageDataUrl) {
   return aiComplete([{
     role: 'user',
     content: [
-      { type: 'text', text: 'You are a book cover reader. Read ONLY the book title and the author name printed on this cover photo. Rules: (1) book_title = the largest, most prominent text on the cover; it may be written vertically (top-to-bottom) or horizontally — combine the stacked parts into one continuous title with NO spaces between them; (2) author = the short person name (usually 2-4 characters) marked with "著" / "著者" / "by" / "written by", usually printed in a corner of the cover; read each character very carefully because the name may be small and vertical; (3) IGNORE every other cover element: year numbers, dates, publisher names, slogans, blurbs, background decorations and small text; (4) NEVER guess from memory or general knowledge — only read what is actually printed in this photo; (5) if you are not confident about the exact characters of the author name, return an empty string instead of guessing. Return ONLY valid JSON, with no other text: {"book_title":"","author":""}.' },
+      { type: 'text', text: 'You are a book cover reader. Read ONLY the book title and the author name printed on this cover photo. Rules: (1) book_title = the largest, most prominent text on the cover — a cover ALWAYS has a title, so if you can see a large heading (horizontal, or vertical with characters stacked top-to-bottom), transcribe it in full and join the stacked characters into one continuous title with NO spaces; do not leave book_title empty unless there is genuinely no readable title; (2) author = the short person name (usually 2-4 characters) marked with "著" / "著者" / "by" / "written by", usually printed in a corner of the cover; read each character very carefully because the name may be small or vertical; if you are not confident about the exact characters, return an empty string for author; (3) IGNORE every other cover element: year numbers, dates, publisher names, slogans, blurbs, background decorations and small text; (4) NEVER guess from memory or general knowledge — only read what is actually printed in this photo. Return ONLY valid JSON, with no other text: {"book_title":"","author":""}.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
   }]);
@@ -345,7 +387,8 @@ async function runAnalysis() {
       setLoadingText(`🤖 分析緊第 ${i + 1} / ${total} 張...`);
       const img = pageImages[0];   // 永遠處理第一張（處理完即清走）
       try {
-        const r = await analyzePage(img.url);
+        const aiUrl = await resizeImageDataUrl(img.url, 1600);   // 縮細先送 AI，避免圖片太大超時/被拒
+        const r = await analyzePage(aiUrl);
         results.push({
           id: uid(),
           topic: r.topic || '',
@@ -913,7 +956,8 @@ async function addBookImage(file) {
     const url = await readFileAsDataURL(file);
     setBusy(true);
     toast('🤖 認書名及作者中...');
-    const r = await recognizeBook(url);
+    const aiUrl = await resizeImageDataUrl(url, 1600);   // 縮細先送 AI
+    const r = await recognizeBook(aiUrl);
     if (r.book_title) $('#book-title').value = r.book_title;
     if (r.author) $('#book-author').value = r.author;
     toast(r.book_title ? '已自動填入書名及作者，請核對' : 'AI 未能確定書名/作者，可以手動輸入', 'success');
