@@ -1,0 +1,85 @@
+# 📖 OCR eBooks
+
+免費、純前端嘅書本掃描記事 WebApp。影低書頁 → AI 自動抽出 (topic, content, chapter, page) → 核對後存入 GitHub repo 嘅 `xxxx.json`。可以直接用 GitHub Pages 免費托管，或者直接開 `index.html` 用。
+
+## ✨ 功能
+
+1. **Desktop / Mobile 自適應 UI**（手機底部導航、大按鈕、可橫向捲動表格）
+2. **四種方式加入書頁相片**：📸 即時影相、🖼 瀏覽上傳、Drag & Drop、Clipboard Paste（Ctrl+V）
+3. 書頁照片會經 AI 讀出 `topic / content / chapter / page`（頁首頁尾嘅章節、頁碼會自動抽）
+4. 經用戶喺表格核對（可直接編輯）後，儲存做 `xxxx.json`（檔案名由用戶輸入）；可以揀 repo 入面已存在嘅書檔，**新內容會 append 喺後面**
+5. 結果以表格顯示，表格上方有書名及作者輸入欄（會一併寫入 `xxxx.json` 同 `books.json`）
+6. **認書名介面**：手動輸入之外，仲可以影相 / 上傳 / 拖放 / 貼上封面圖片，AI 自動認書名及作者並填入輸入框；書名及作者存喺單一 `books.json`（`book_title, author`），書內容存喺各自嘅 `xxxx.json`
+7. **相片私隱**：相片只會喺瀏覽器記憶體入面處理（以 base64 data URL 送入 AI API），**分析完唔會儲存去 repo 或任何地方**，刷新頁面即消失
+8. **書庫頁**：表格列出 repo 中所有 `xxxx.json`、書名、作者，頂頭有 filter 可以篩選
+9. 撳書庫中任何一本書 → 用同一種表格方式顯示內容（**按 page 排序**），每條 row 都可以**編輯 / 刪除**，撳「儲存修改」寫返入 repo
+10. **設定頁**：可設定 AI model（預設 `deepseek/deepseek-v4.1-flash`）、base URL（預設 `https://openrouter.ai/api/v1`）、API Key、GitHub repo / token；設定會寫入 repo 嘅 `settings.json`
+
+## 🚀 部署
+
+### 方法 A：GitHub Pages（免費托管）
+1. 將本 repo push 上 GitHub（已經做咗）
+2. GitHub 網頁 → repo → **Settings → Pages → Build and deployment → Source: Deploy from a branch → main / (root)** → Save
+3. 完成後網址：`https://<username>.github.io/ocr-ebooks/`
+
+### 方法 B：本地直接用
+直接雙撳開 `index.html` 就得（GitHub API 同 OpenRouter API 都支援 CORS，file:// 都用到）。
+
+## ⚙️ 設定
+
+開 App 之後去「⚙️ 設定」頁：
+
+| 欄位 | 說明 |
+|---|---|
+| GitHub Owner / Repo / Branch | 預設已填 `lamkayuekenneth` / `ocr-ebooks` / `main` |
+| GitHub Token | Fine-grained PAT，需要 **Contents: Read and write** 權限；用嚟讀寫 repo 入面嘅 json |
+| AI Model | 需要**支援圖片輸入 (vision)** 嘅模型，預設 `deepseek/deepseek-v4.1-flash` |
+| Base URL | 預設 `https://openrouter.ai/api/v1`（OpenAI 兼容 `/chat/completions` 都得） |
+| API Key | OpenRouter / 對應 provider 嘅 key |
+
+設定儲存：本機瀏覽器（localStorage）+ 可選寫入 repo 嘅 `settings.json`。
+
+## 🔐 安全警告（重要）
+
+- 呢個 repo 係 **public**。任何寫入 `settings.json` 嘅 **API Key / GitHub Token 都會公開**！
+- 建議做法：
+  - **方法 1**：將 repo 轉做 **private**（呢個 app 依然可以本地用 / private Pages 用）；
+  - **方法 2**：喺設定頁**取消剔**「將設定寫入 repo 嘅 settings.json」，令 key 只存喺你自己瀏覽器（localStorage），repo 入面嘅 `settings.json` 留空。
+- 今次第一次 commit 嘅 `settings.json` 已經係**空白 key 版本**，冇洩漏任何秘密。
+
+## 📁 資料格式
+
+**`books.json`**（書名 / 作者註冊表）：
+```json
+[
+  { "file": "physics.json", "book_title": "Physics", "author": "xxx" }
+]
+```
+
+**`xxxx.json`**（書內容，`topic+content` 為 1 row）：
+```json
+{
+  "book_title": "Physics",
+  "author": "xxx",
+  "rows": [
+    { "topic": "力學", "content": "...", "chapter": "第1章", "page": "12" }
+  ]
+}
+```
+
+**`settings.json`**：
+```json
+{
+  "github_owner": "...",
+  "github_repo": "...",
+  "github_branch": "main",
+  "github_token": "",
+  "ai_model": "deepseek/deepseek-v4.1-flash",
+  "base_url": "https://openrouter.ai/api/v1",
+  "api_key": ""
+}
+```
+
+## 🖼 相片私隱
+
+相片上傳後只會喺瀏覽器記憶體（JS 變數）入面暫存做預覽及送入 AI API，**唔會上傳去任何圖床、唔會寫入 repo、唔會寫入 localStorage**。重新整理頁面即清除。

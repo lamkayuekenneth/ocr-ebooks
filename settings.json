@@ -1,0 +1,9 @@
+{
+  "github_owner": "lamkayuekenneth",
+  "github_repo": "ocr-ebooks",
+  "github_branch": "main",
+  "github_token": "",
+  "ai_model": "deepseek/deepseek-v4.1-flash",
+  "base_url": "https://openrouter.ai/api/v1",
+  "api_key": ""
+}

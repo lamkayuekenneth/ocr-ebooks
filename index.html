@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCR eBooks — 書本掃描記事</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand"><span class="logo">📖</span> OCR eBooks</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="scan">📷 掃描</button>
+    <button class="tab" data-tab="library">📚 書庫</button>
+    <button class="tab" data-tab="settings">⚙️ 設定</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ 掃描頁 ============ -->
+  <section id="page-scan" class="page active">
+
+    <!-- 書名 / 作者 -->
+    <div class="card">
+      <h2>書本資料</h2>
+      <div class="row-2">
+        <label>書名
+          <input id="book-title" class="input" placeholder="書名（可以手動輸入）" autocomplete="off">
+        </label>
+        <label>作者
+          <input id="book-author" class="input" placeholder="作者" autocomplete="off">
+        </label>
+      </div>
+      <div class="book-dropzone" id="book-dropzone">
+        <p class="dz-text">📕 將書名 / 封面圖片拖到呢度，或撳下面按鈕，AI 會自動認書名及作者</p>
+        <div class="btn-group">
+          <button type="button" class="btn" id="btn-book-camera">📸 即時影相</button>
+          <button type="button" class="btn" id="btn-book-browse">🖼 瀏覽上傳</button>
+        </div>
+        <input type="file" id="book-file-input" accept="image/*" hidden>
+        <input type="file" id="book-camera-input" accept="image/*" capture="environment" hidden>
+        <p class="hint">提示：貼上（Ctrl+V）圖片時，如果滑鼠指住呢個框，就會當封面處理；否則當書頁相片。</p>
+      </div>
+    </div>
+
+    <!-- 頁面相片上傳 -->
+    <div class="card">
+      <h2>頁面照片</h2>
+      <div class="dropzone" id="page-dropzone">
+        <p class="dz-text">📄 拖曳書頁圖片到呢度（可多張）</p>
+        <div class="btn-group">
+          <button type="button" class="btn primary" id="btn-camera">📸 即時影相</button>
+          <button type="button" class="btn primary" id="btn-browse">🖼 瀏覽上傳</button>
+          <button type="button" class="btn accent" id="btn-analyze">🤖 AI 分析</button>
+        </div>
+        <input type="file" id="page-file-input" accept="image/*" multiple hidden>
+        <input type="file" id="page-camera-input" accept="image/*" capture="environment" hidden>
+        <p class="hint">支援多張圖片。相片只會喺瀏覽器記憶體處理，分析完唔會儲存去 repo 或任何地方。</p>
+      </div>
+      <div id="thumb-grid" class="thumb-grid"></div>
+      <div id="progress" class="progress hidden"></div>
+    </div>
+
+    <!-- AI 結果 -->
+    <div class="card">
+      <h2>AI 辨識結果（核對後儲存）</h2>
+      <div class="toolbar">
+        <label class="grow">儲存檔名（xxxx.json）
+          <input id="file-name" class="input" placeholder="例如 physics.json" autocomplete="off">
+        </label>
+        <label class="grow">或選擇現有檔案（內容會 append 喺後面）
+          <select id="file-existing" class="input"></select>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table id="result-table">
+          <thead>
+            <tr><th style="width:44px">#</th><th>Topic</th><th>Content</th><th style="width:110px">Chapter</th><th style="width:80px">Page</th><th style="width:44px"></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn success" id="btn-save">💾 確認並儲存</button>
+        <button type="button" class="btn" id="btn-clear">🗑 清空結果</button>
+        <button type="button" class="btn" id="btn-clear-photos">清除相片</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 書庫頁 ============ -->
+  <section id="page-library" class="page">
+    <div class="card">
+      <h2>書庫</h2>
+      <input id="lib-filter" class="input filter" placeholder="🔍 篩選書名 / 作者 / 檔案名稱...">
+      <div class="table-wrap">
+        <table id="lib-table">
+          <thead>
+            <tr><th>檔案</th><th>書名</th><th>作者</th><th>條目</th><th style="width:80px"></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint" id="lib-hint"></p>
+    </div>
+
+    <div class="card hidden" id="book-detail-card">
+      <h2 id="book-detail-title"></h2>
+      <p class="hint">按 Page 排序；每條 row 都可以直接編輯，刪除後撳「儲存修改」寫返入 repo。</p>
+      <div class="table-wrap">
+        <table id="book-detail-table">
+          <thead>
+            <tr><th style="width:44px">#</th><th>Topic</th><th>Content</th><th style="width:110px">Chapter</th><th style="width:80px">Page</th><th style="width:44px"></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn success" id="btn-detail-save">💾 儲存修改</button>
+        <button type="button" class="btn" id="btn-detail-back">← 返回書庫</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 設定頁 ============ -->
+  <section id="page-settings" class="page">
+    <div class="card">
+      <h2>設定</h2>
+      <div class="form-grid">
+        <label>GitHub Owner
+          <input id="set-owner" class="input" autocomplete="off">
+        </label>
+        <label>GitHub Repo
+          <input id="set-repo" class="input" autocomplete="off">
+        </label>
+        <label>Branch
+          <input id="set-branch" class="input" autocomplete="off">
+        </label>
+        <label>GitHub Token（要 Contents 讀寫權限）
+          <input id="set-gh-token" class="input" type="password" autocomplete="off">
+        </label>
+        <label>AI Model
+          <input id="set-model" class="input" autocomplete="off">
+        </label>
+        <label>Base URL
+          <input id="set-base-url" class="input" autocomplete="off">
+        </label>
+        <label class="span-2">API Key
+          <input id="set-api-key" class="input" type="password" autocomplete="off">
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="set-write-repo" checked>
+        將以上設定寫入 repo 嘅 <code>settings.json</code>（未揀 = 只存喺本機瀏覽器 localStorage）
+      </label>
+      <div class="security-note">
+        ⚠️ <b>安全警告</b>：如果 repo 係 <b>public</b>，任何寫入 <code>settings.json</code> 嘅 API Key / Token 都會俾任何人睇到！
+        建議：① 用 private repo；或 ② 唔好將 key 寫入 repo（取消上面剔號），key 只存喺自己瀏覽器。
+      </div>
+      <button type="button" class="btn success" id="btn-save-settings">💾 儲存設定</button>
+      <div id="settings-status" class="status"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
