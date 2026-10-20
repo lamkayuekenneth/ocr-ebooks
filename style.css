@@ -112,6 +112,24 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
   margin: 10px 0 14px;
 }
 .status { font-size: 13px; color: var(--success); margin-top: 10px; min-height: 18px; }
+.status.error { color: var(--danger); }
+.status.success { color: var(--success); }
+
+/* ---------- 狀態檢查表 ---------- */
+.status-table { display: grid; gap: 8px; margin: 4px 0 12px; }
+.st-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.st-label { font-weight: 600; color: var(--muted); }
+.st-value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; text-align: right; }
+.st-value.ok { color: var(--success); }
+.st-value.no { color: var(--danger); }
 
 /* ---------- Buttons ---------- */
 .btn {

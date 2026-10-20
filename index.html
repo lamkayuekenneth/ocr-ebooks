@@ -158,6 +158,24 @@
       <button type="button" class="btn success" id="btn-save-settings">💾 儲存設定</button>
       <div id="settings-status" class="status"></div>
     </div>
+
+    <div class="card">
+      <h2>狀態檢查 &amp; 連線測試</h2>
+      <p class="hint">以下係呢部裝置 + 呢個瀏覽器而家儲存嘅設定。呢啲資料唔會跨裝置 / 跨瀏覽器同步——換咗手機、另一部機或者另一個瀏覽器開網頁，要重新填一次。Key 只會顯示尾 4 位。</p>
+      <div class="status-table">
+        <div class="st-row"><span class="st-label">GitHub Token（PAT）</span><span class="st-value" id="st-gh-token">—</span></div>
+        <div class="st-row"><span class="st-label">GitHub Owner / Repo</span><span class="st-value" id="st-gh-repo">—</span></div>
+        <div class="st-row"><span class="st-label">API Key</span><span class="st-value" id="st-api-key">—</span></div>
+        <div class="st-row"><span class="st-label">AI Model</span><span class="st-value" id="st-model">—</span></div>
+        <div class="st-row"><span class="st-label">Base URL</span><span class="st-value" id="st-base-url">—</span></div>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn" id="btn-test-ai">🔍 測試 AI API</button>
+        <button type="button" class="btn" id="btn-test-gh">🔍 測試 GitHub API</button>
+      </div>
+      <div id="test-result" class="status"></div>
+      <p class="hint">測試 AI API 會向 AI 供應商發一個極短嘅請求（消耗極少量 token），驗證 API Key 同模型設定是否有效。</p>
+    </div>
   </section>
 </main>
 

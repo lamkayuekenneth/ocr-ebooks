@@ -598,6 +598,92 @@ function saveSettings() {
   const msg = '設定已儲存（只存喺本機瀏覽器 localStorage，唔會寫入 repo）';
   $('#settings-status').textContent = msg;
   toast(msg, 'success');
+  renderStatusCheck();
+}
+
+/* =========================================================
+ * 狀態檢查 & 連線測試
+ * ========================================================= */
+function maskKey(v) {
+  if (!v) return '';
+  const s = String(v);
+  if (s.length <= 4) return '****';
+  return '...' + s.slice(-4);
+}
+
+function renderStatusCheck() {
+  const set = (id, text, ok) => {
+    const el = $('#' + id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'st-value ' + (ok ? 'ok' : 'no');
+  };
+  set('st-gh-token', settings.github_token ? '✓ 已設定（尾4位：' + maskKey(settings.github_token) + '）' : '✗ 未設定', !!settings.github_token);
+  set('st-gh-repo', (settings.github_owner && settings.github_repo) ? '✓ ' + settings.github_owner + ' / ' + settings.github_repo : '✗ 未設定', !!(settings.github_owner && settings.github_repo));
+  set('st-api-key', settings.api_key ? '✓ 已設定（尾4位：' + maskKey(settings.api_key) + '）' : '✗ 未設定', !!settings.api_key);
+  set('st-model', settings.ai_model || '—', !!settings.ai_model);
+  set('st-base-url', settings.base_url || '—', !!settings.base_url);
+}
+
+function setTestResult(text, type) {
+  const out = $('#test-result');
+  out.textContent = text;
+  out.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* 測試 AI API：發一個極短請求驗證 key + 模型 + base URL */
+async function testAI() {
+  if (!settings.api_key) { setTestResult('❌ 未設定 API Key，請先喺上面填寫', 'error'); return; }
+  if (!settings.ai_model) { setTestResult('❌ 未設定 AI Model', 'error'); return; }
+  setTestResult('⏳ 測試中，請稍候...');
+  setBusy(true);
+  try {
+    const url = settings.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + settings.api_key,
+        'HTTP-Referer': 'https://github.com/' + settings.github_owner + '/' + settings.github_repo,
+        'X-Title': 'OCR eBooks'
+      },
+      body: JSON.stringify({ model: settings.ai_model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 })
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const e = await res.json(); msg = (e.error && (e.error.message || JSON.stringify(e.error))) || msg; } catch (e) { /* ignore */ }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const reply = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    setTestResult('✅ API Key 有效！模型「' + settings.ai_model + '」回應：' + (reply.trim() ? reply.trim() : '(空)'), 'success');
+  } catch (e) {
+    setTestResult('❌ AI 測試失敗：' + e.message, 'error');
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* 測試 GitHub：驗證 token 有效 + repo 可訪問 */
+async function testGitHub() {
+  if (!settings.github_token) { setTestResult('❌ 未設定 GitHub Token', 'error'); return; }
+  if (!settings.github_owner || !settings.github_repo) { setTestResult('❌ 未設定 GitHub Owner / Repo', 'error'); return; }
+  setTestResult('⏳ 測試中，請稍候...');
+  setBusy(true);
+  try {
+    const repo = await gh(repoBase());
+    const listing = await gh(repoBase() + '/contents/?ref=' + encodeURIComponent(settings.github_branch));
+    const n = Array.isArray(listing) ? listing.length : 0;
+    setTestResult('✅ GitHub Token 有效，repo「' + settings.github_owner + '/' + settings.github_repo + '」可訪問（' + (repo.default_branch ? 'default branch: ' + repo.default_branch + '，' : '') + '根目錄 ' + n + ' 個項目）', 'success');
+  } catch (e) {
+    let hint = '';
+    if (String(e.message).includes('401') || String(e.message).includes('Bad credentials')) hint = '（Token 無效或已過期）';
+    else if (String(e.message).includes('403')) hint = '（權限不足，需要 Contents 讀寫權限）';
+    else if (String(e.message).includes('404')) hint = '（repo 唔存在，或 token 睇唔到佢）';
+    setTestResult('❌ GitHub 測試失敗：' + e.message + hint, 'error');
+  } finally {
+    setBusy(false);
+  }
 }
 
 /* =========================================================
@@ -702,6 +788,8 @@ function bindEvents() {
 
   /* 設定 */
   $('#btn-save-settings').addEventListener('click', saveSettings);
+  $('#btn-test-ai').addEventListener('click', testAI);
+  $('#btn-test-gh').addEventListener('click', testGitHub);
 }
 
 /* =========================================================
@@ -727,6 +815,7 @@ async function init() {
   } catch (e) { /* 離線 / private / 冇 token */ }
 
   showTab('scan');
+  renderStatusCheck();
   refreshExistingFiles();
   refreshLibrary();
 }
