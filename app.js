@@ -419,6 +419,43 @@ function autosize(el) {
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
 
+/* =========================================================
+ * 全屏內容編輯：撳 content textarea 彈大編輯框
+ * ========================================================= */
+let fullEditTarget = null;
+
+function openFullEdit(textarea) {
+  fullEditTarget = textarea;
+  $('#full-edit-text').value = textarea.value;
+  $('#full-edit-overlay').classList.remove('hidden');
+  const t = $('#full-edit-text');
+  t.focus();
+  t.setSelectionRange(t.value.length, t.value.length);   /* 游標去到尾 */
+}
+
+function closeFullEdit() {
+  if (!fullEditTarget) return;
+  fullEditTarget.value = $('#full-edit-text').value;
+  autosize(fullEditTarget);
+  fullEditTarget = null;
+  $('#full-edit-overlay').classList.add('hidden');
+}
+
+function bindFullEdit() {
+  /* 任何 .content-text textarea 撳入去 → 彈全屏（event delegation，唔使每次 render 綁） */
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t && t.tagName === 'TEXTAREA' && t.classList.contains('content-text')) {
+      openFullEdit(t);
+    }
+  });
+  $('#full-edit-close').addEventListener('click', closeFullEdit);
+  $('#full-edit-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeFullEdit(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('#full-edit-overlay').classList.contains('hidden')) closeFullEdit();
+  });
+}
+
 /* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣 */
 function renderResultCards() {
   const wrap = $('#result-cards');
@@ -444,6 +481,7 @@ function renderResultCards() {
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
+      if (tag === 'textarea') el.classList.add('content-text');   /* 撳入去彈全屏編輯 */
       el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
       lab.appendChild(span);
       lab.appendChild(el);
@@ -782,6 +820,7 @@ function renderDetailRows() {
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
+      if (tag === 'textarea') el.classList.add('content-text');   /* 撳入去彈全屏編輯 */
       el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
       td.appendChild(el);
       return td;
@@ -1063,6 +1102,7 @@ function bindEvents() {
 async function init() {
   loadLocalSettings();          /* localStorage 優先 */
   bindEvents();
+  bindFullEdit();
   bindSettingsForm();
 
   /* 讀取 repo 入面嘅 settings.json 做非敏感預設（localStorage 會覆蓋）
