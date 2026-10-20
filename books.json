@@ -3,5 +3,10 @@
     "file": "books/讀歷史了解香港地產.json",
     "book_title": "讀歷史了解香港地產",
     "author": ""
+  },
+  {
+    "file": "books/_cache_test.json",
+    "book_title": "",
+    "author": ""
   }
 ]
