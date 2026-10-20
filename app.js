@@ -193,7 +193,7 @@ async function recognizeBook(imageDataUrl) {
   return aiComplete([{
     role: 'user',
     content: [
-      { type: 'text', text: 'You are a book cover recognition assistant. Identify the book title and the author from this book cover / title page photo. Return ONLY valid JSON, with no other text: {"book_title":"book title","author":"author name"}. Leave a field as an empty string if you cannot determine it.' },
+      { type: 'text', text: 'You are a book cover reader. Read ONLY the book title and the author actually printed on this cover photo. Rules: (1) book_title = the largest, most prominent text on the cover; it may be written vertically (top-to-bottom) or horizontally, so combine stacked characters into the correct continuous title; (2) author = the person name marked with "著" / "著者" / "by" / "written by", otherwise empty string; (3) IGNORE every other cover element: year numbers, dates, publisher names, slogans, blurbs, background decorations and small text; (4) NEVER guess from memory or general knowledge — only read what is really printed in this photo; (5) if you cannot read the book title either, leave it as an empty string. Return ONLY valid JSON, with no other text: {"book_title":"","author":""}.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
   }]);
