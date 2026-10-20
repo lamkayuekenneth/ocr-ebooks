@@ -30,7 +30,18 @@ function toast(msg, type = 'info') {
 let busyCount = 0;
 function setBusy(on) {
   busyCount = Math.max(0, busyCount + (on ? 1 : -1));
+  const overlay = $('#loading-overlay');
+  if (busyCount > 0) {
+    overlay.classList.remove('hidden');
+  } else {
+    overlay.classList.add('hidden');
+  }
   $$('.btn').forEach(b => b.disabled = busyCount > 0);
+}
+
+/* 更新 loading 遮罩文字（例如「分析緊第 2 / 3 張…」） */
+function setLoadingText(text) {
+  $('#loading-text').textContent = text || '處理中…';
 }
 
 function utf8ToBase64(str) {
@@ -312,15 +323,15 @@ function renderThumbs() {
 async function runAnalysis() {
   if (!pageImages.length) { toast('未有相片，請先加入書頁相片', 'warn'); return; }
   results.length = 0;
-  renderResults();
-  const prog = $('#progress');
-  prog.classList.remove('hidden');
+  renderResultCards();
   setBusy(true);
   try {
-    for (let i = 0; i < pageImages.length; i++) {
-      prog.textContent = `🤖 分析緊第 ${i + 1} / ${pageImages.length} 張...`;
+    const total = pageImages.length;
+    for (let i = 0; i < total; i++) {
+      setLoadingText(`🤖 分析緊第 ${i + 1} / ${total} 張...`);
+      const img = pageImages[0];   // 永遠處理第一張（處理完即清走）
       try {
-        const r = await analyzePage(pageImages[i].url);
+        const r = await analyzePage(img.url);
         results.push({
           id: uid(),
           topic: r.topic || '',
@@ -332,9 +343,13 @@ async function runAnalysis() {
         results.push({ id: uid(), topic: '', content: `⚠️ 分析失敗：${e.message}`, chapter: '', page: '' });
         toast('第 ' + (i + 1) + ' 張分析失敗：' + e.message, 'error');
       }
-      renderResults();
+      /* 分析完即刻清除該張相（唔會留喺 UI / 任何地方） */
+      const idx = pageImages.findIndex(x => x.id === img.id);
+      if (idx >= 0) pageImages.splice(idx, 1);
+      renderThumbs();
+      renderResultCards();
     }
-    prog.textContent = '✅ 分析完成，請核對以下結果（可直接編輯），再撳「確認並儲存」。';
+    setLoadingText('✅ 分析完成，請逐張核對後儲存。');
     toast('分析完成');
   } finally {
     setBusy(false);
@@ -347,46 +362,71 @@ function autosize(el) {
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
 
-function renderResults() {
-  const tbody = $('#result-table tbody');
-  tbody.innerHTML = '';
+/* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣 */
+function renderResultCards() {
+  const wrap = $('#result-cards');
+  wrap.innerHTML = '';
+  if (!results.length) {
+    const p = document.createElement('p');
+    p.className = 'hint';
+    p.style.textAlign = 'center';
+    p.textContent = '未有任何結果。加入書頁相片後撳「🤖 AI 分析」。';
+    wrap.appendChild(p);
+    return;
+  }
   results.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    const mk = (tag, key, ph) => {
-      const td = document.createElement('td');
+    const card = document.createElement('div');
+    card.className = 'result-card';
+
+    const mk = (tag, key, ph, label) => {
+      const lab = document.createElement('label');
+      lab.className = 'rc-field';
+      const span = document.createElement('span');
+      span.className = 'rc-label';
+      span.textContent = label;
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
       el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
-      td.appendChild(el);
-      return td;
+      lab.appendChild(span);
+      lab.appendChild(el);
+      return lab;
     };
-    const num = document.createElement('td');
-    num.className = 'row-num';
-    num.textContent = String(i + 1);
-    tr.appendChild(num);
-    tr.appendChild(mk('input', 'topic', '主題'));
-    tr.appendChild(mk('textarea', 'content', '正文'));
-    tr.appendChild(mk('input', 'chapter', '章節'));
-    tr.appendChild(mk('input', 'page', '頁碼'));
-    const act = document.createElement('td');
-    const del = document.createElement('button');
-    del.className = 'btn danger small';
-    del.textContent = '✕';
-    del.title = '刪除呢行';
-    del.onclick = () => {
+
+    const head = document.createElement('div');
+    head.className = 'rc-head';
+    const title = document.createElement('span');
+    title.textContent = `第 ${i + 1} 張`;
+    const discard = document.createElement('button');
+    discard.className = 'btn small danger';
+    discard.textContent = '🗑 捨棄';
+    discard.title = '唔要呢張結果';
+    discard.onclick = () => {
       const idx = results.findIndex(x => x.id === r.id);
       if (idx >= 0) results.splice(idx, 1);
-      renderResults();
+      renderResultCards();
     };
-    act.appendChild(del);
-    tr.appendChild(act);
-    tbody.appendChild(tr);
+    head.appendChild(title);
+    head.appendChild(discard);
+    card.appendChild(head);
+
+    card.appendChild(mk('input', 'chapter', '章節', 'Chapter'));
+    card.appendChild(mk('input', 'topic', '主題', 'Topic'));
+    card.appendChild(mk('input', 'page', '頁碼', 'Page'));
+    card.appendChild(mk('textarea', 'content', '正文', 'Content'));
+
+    const act = document.createElement('div');
+    act.className = 'rc-actions';
+    const save = document.createElement('button');
+    save.className = 'btn success';
+    save.textContent = '💾 確認儲存';
+    save.onclick = () => saveSingleRow(r);
+    act.appendChild(save);
+    card.appendChild(act);
+
+    wrap.appendChild(card);
   });
-  tbody.querySelectorAll('textarea').forEach(autosize);
-  if (!results.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="hint" style="text-align:center">未有任何結果。加入書頁相片後撳「🤖 AI 分析」。</td></tr>';
-  }
+  wrap.querySelectorAll('textarea').forEach(autosize);
 }
 
 /* =========================================================
@@ -489,20 +529,23 @@ async function pickExistingFile(file) {
 }
 
 /* =========================================================
- * 儲存書內容（xxxx.json + books.json）
+ * 儲存書內容（每張相獨立：append 入 xxxx.json + 更新 books.json）
+ * 注意：用 savingLock 防止連撳多張時並發寫入撞 SHA（GitHub 409）
  * ========================================================= */
-async function saveBook() {
+let savingLock = false;
+
+async function saveSingleRow(row) {
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
   const bookTitle = $('#book-title').value.trim();
   const author = $('#book-author').value.trim();
   let fileName = $('#file-name').value.trim();
-  if (!fileName) { toast('請輸入儲存檔名（xxxx.json），或撳「📂 選擇現有檔案」', 'warn'); return; }
+  if (!fileName) { toast('請輸入儲存檔名（例如 physics），或撳「📂 選擇現有檔案」', 'warn'); return; }
   if (!/\.json$/i.test(fileName)) fileName += '.json';
 
-  const rows = results
-    .filter(r => (r.topic && r.topic.trim()) || (r.content && r.content.trim()))
-    .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }));
-  if (!rows.length) { toast('冇可儲存嘅資料（至少要有 topic 或 content）', 'warn'); return; }
+  const data = { topic: (row.topic || '').trim(), content: (row.content || '').trim(), chapter: (row.chapter || '').trim(), page: (row.page || '').trim() };
+  if (!data.topic && !data.content) { toast('呢張冇內容（topic 或 content 至少一樣）', 'warn'); return; }
 
+  savingLock = true;
   setBusy(true);
   try {
     const existingData = await getFileContent(fileName);
@@ -511,9 +554,9 @@ async function saveBook() {
       try { book = JSON.parse(existingData.content); } catch (e) { book = { rows: [] }; }
       book.book_title = bookTitle || book.book_title || '';
       book.author = author || book.author || '';
-      book.rows = (Array.isArray(book.rows) ? book.rows : []).concat(rows);
+      book.rows = (Array.isArray(book.rows) ? book.rows : []).concat(data);
     } else {
-      book = { book_title: bookTitle, author, rows };
+      book = { book_title: bookTitle, author, rows: [data] };
     }
 
     /* books.json 註冊表：{file, book_title, author} */
@@ -531,10 +574,16 @@ async function saveBook() {
 
     await writeFile(fileName, JSON.stringify(book, null, 2), `Add book content to ${fileName}`);
     await writeFile('books.json', JSON.stringify(reg, null, 2), 'Update books registry');
-    toast('已儲存到 ' + fileName + '（共 ' + book.rows.length + ' 條）', 'success');
+    toast('已儲存到 ' + fileName + '（而家共 ' + book.rows.length + ' 條）', 'success');
+
+    /* 儲存成功後，將呢張相喺結果區移除（唔會重複儲存） */
+    const ridx = results.findIndex(x => x.id === row.id);
+    if (ridx >= 0) results.splice(ridx, 1);
+    renderResultCards();
   } catch (e) {
     toast('儲存失敗：' + e.message, 'error');
   } finally {
+    savingLock = false;
     setBusy(false);
   }
 }
@@ -887,11 +936,8 @@ function bindEvents() {
     }
   });
 
-  /* AI 分析 / 儲存 / 清空 */
+  /* AI 分析 */
   $('#btn-analyze').addEventListener('click', runAnalysis);
-  $('#btn-save').addEventListener('click', saveBook);
-  $('#btn-clear').addEventListener('click', () => { results.length = 0; renderResults(); toast('已清空結果'); });
-  $('#btn-clear-photos').addEventListener('click', () => { pageImages.length = 0; renderThumbs(); toast('已清除相片（記憶體內）'); });
 
   /* 現有檔案 popup */
   $('#btn-pick-existing').addEventListener('click', openFilePicker);

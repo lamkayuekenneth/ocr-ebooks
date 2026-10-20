@@ -64,26 +64,14 @@
 
     <!-- AI 結果 -->
     <div class="card">
-      <h2>AI 辨識結果（核對後儲存）</h2>
+      <h2>AI 辨識結果（每張相獨立核對儲存）</h2>
       <div class="toolbar">
-        <label class="grow">儲存檔名（xxxx.json）
-          <input id="file-name" class="input" placeholder="例如 physics.json" autocomplete="off">
+        <label class="grow">儲存檔名
+          <input id="file-name" class="input" placeholder="例如 physics（唔使打 .json）" autocomplete="off">
         </label>
         <button type="button" class="btn" id="btn-pick-existing" style="align-self:flex-end">📂 選擇現有檔案（append）</button>
       </div>
-      <div class="table-wrap">
-        <table id="result-table">
-          <thead>
-            <tr><th style="width:40px">#</th><th style="width:12%">Topic</th><th>Content</th><th style="width:11%">Chapter</th><th style="width:8%">Page</th><th style="width:40px"></th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="btn-group">
-        <button type="button" class="btn success" id="btn-save">💾 確認並儲存</button>
-        <button type="button" class="btn" id="btn-clear">🗑 清空結果</button>
-        <button type="button" class="btn" id="btn-clear-photos">清除相片</button>
-      </div>
+      <div id="result-cards" class="result-cards"></div>
     </div>
   </section>
 
@@ -201,6 +189,15 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- 全屏灰色 loading 遮罩（AI 分析期間防止操作） -->
+<div id="loading-overlay" class="loading-overlay hidden">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loading-text">處理中…</div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
