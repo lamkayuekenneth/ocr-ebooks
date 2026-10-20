@@ -197,7 +197,7 @@ async function analyzePage(imageDataUrl) {
   return aiComplete([{
     role: 'user',
     content: [
-      { type: 'text', text: 'You are a book page transcription assistant. Read the photo of a printed book page and return ONLY valid JSON, with no other text: {"topic":"title/subject of this page, empty string if none","content":"verbatim transcription of the page body text","chapter":"chapter name if present in the page header/footer, otherwise empty string","page":"page number if present in the page header/footer, otherwise empty string"}. TRANSCRIPTION RULES (STRICT): the printed text wraps across many lines, so you MUST collapse every printed line break and make the content read as one continuous text flow — never end a line where the printed text merely wraps to the next printed line. Insert a single "\\n" ONLY between genuine paragraphs (the original page shows a clear paragraph break, e.g. first-line indentation or a blank line gap). Never insert newlines for line wrapping, column layout, spacing, headers, footers or page numbers. Keep the original wording verbatim.' },
+      { type: 'text', text: 'You are a book page transcription assistant. Read the photo of a printed book page and return ONLY valid JSON, with no other text: {"topic":"title/subject of this page, empty string if none","content":"verbatim transcription of the page body text","chapter":"chapter name if present in the page header/footer, otherwise empty string","page":"page number if present in the page header/footer, otherwise empty string"}. TOPIC RULE: the topic is the page\'s main heading — usually the largest text on the page, which may be written vertically (top-to-bottom, characters stacked). Read the COMPLETE heading character by character and NEVER drop any character from it. TRANSCRIPTION RULES (STRICT): the printed text wraps across many lines, so you MUST collapse every printed line break and make the content read as one continuous text flow — never end a line where the printed text merely wraps to the next printed line. Insert a single "\\n" ONLY between genuine paragraphs (the original page shows a clear paragraph break, e.g. first-line indentation or a blank line gap). Never insert newlines for line wrapping, column layout, spacing, headers, footers or page numbers. Keep the original wording verbatim.' },
       { type: 'image_url', image_url: { url: imageDataUrl } }
     ]
   }]);
@@ -306,6 +306,12 @@ async function runAnalysis() {
   }
 }
 
+/* 令 textarea 自動增高，顯示成段內容（唔使喺框內捲動） */
+function autosize(el) {
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + 2) + 'px';
+}
+
 function renderResults() {
   const tbody = $('#result-table tbody');
   tbody.innerHTML = '';
@@ -316,7 +322,7 @@ function renderResults() {
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
-      el.addEventListener('input', () => { r[key] = el.value; });
+      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
       td.appendChild(el);
       return td;
     };
@@ -342,6 +348,7 @@ function renderResults() {
     tr.appendChild(act);
     tbody.appendChild(tr);
   });
+  tbody.querySelectorAll('textarea').forEach(autosize);
   if (!results.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="hint" style="text-align:center">未有任何結果。加入書頁相片後撳「🤖 AI 分析」。</td></tr>';
   }
@@ -600,7 +607,7 @@ function renderDetailRows() {
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
-      el.addEventListener('input', () => { r[key] = el.value; });
+      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
       td.appendChild(el);
       return td;
     };
@@ -626,6 +633,7 @@ function renderDetailRows() {
     tr.appendChild(act);
     tbody.appendChild(tr);
   });
+  tbody.querySelectorAll('textarea').forEach(autosize);
   if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="6" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
 }
 
