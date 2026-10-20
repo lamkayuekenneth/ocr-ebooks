@@ -39,6 +39,7 @@ body {
   box-shadow: var(--shadow);
 }
 .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.ver-info { font-size: 12px; color: var(--muted); font-weight: 400; cursor: default; white-space: nowrap; }
 .logo { font-size: 22px; }
 
 .tabs { display: flex; gap: 6px; }

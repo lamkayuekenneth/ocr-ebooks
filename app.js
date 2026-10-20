@@ -128,6 +128,21 @@ async function writeFile(path, content, message) {
   await gh(repoBase() + '/contents/' + encodeURIComponent(path), { method: 'PUT', body: JSON.stringify(payload) });
 }
 
+/* 攞 repo 最新 push（commit）時間 + sha，用嚟顯示版本 */
+async function getLastPushInfo() {
+  try {
+    const commits = await gh(`${repoBase()}/commits?per_page=1&sha=${encodeURIComponent(settings.github_branch)}`);
+    if (!Array.isArray(commits) || !commits.length || !commits[0].commit) return null;
+    const c = commits[0];
+    const dateStr = (c.commit.committer && c.commit.committer.date) || '';
+    const sha = (c.sha || '').slice(0, 7);
+    const msg = (c.commit.message || '').split('\n')[0];
+    return { date: dateStr, sha, msg };
+  } catch (e) {
+    return null;
+  }
+}
+
 /* 列出 repo 根目錄所有書本 json（唔包 settings.json / books.json） */
 async function listJsonFiles() {
   const d = await gh(`${repoBase()}/contents/?ref=${encodeURIComponent(settings.github_branch)}`);
@@ -885,6 +900,19 @@ async function init() {
   showTab('scan');
   renderStatusCheck();
   refreshLibrary();
+  renderVersionInfo();
+}
+
+/* 顯示版本（最後 push 時間） */
+async function renderVersionInfo() {
+  const el = $('#ver-info');
+  const info = await getLastPushInfo();
+  if (!info || !info.date) { el.textContent = ''; el.title = '未能讀取版本'; return; }
+  const d = new Date(info.date);
+  const pad = n => String(n).padStart(2, '0');
+  const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  el.textContent = '· v' + local;
+  el.title = `最後 push：${local}（${info.sha}）\n${info.msg || ''}\n\n重新載入頁面即可更新到最新版本`;
 }
 
 document.addEventListener('DOMContentLoaded', init);
