@@ -194,6 +194,39 @@ function extractJSON(text) {
   throw new Error('AI 返回唔係有效 JSON：' + t.slice(0, 160));
 }
 
+/* =========================================================
+ * 內容後處理：除去「冇標點符號分隔」嘅換行（排版 reflow）
+ * - 段落空行（\n\n）一定保留
+ * - 行尾有標點（。，；：？！、…」』））》等）→ 保留換行
+ * - 行尾冇標點 → 刪除換行，將下一行接落嚟
+ * - 下一行以數字／英文字母開頭（如頁碼、條目）→ 保留換行
+ * ========================================================= */
+const LINE_END_PUNCT = /[。，；：？！、…」』"')）》】]/;
+const LINE_START_KEEP = /[A-Za-z0-9·•\-–—]/;
+
+function reflowContent(text) {
+  if (!text) return '';
+  const paragraphs = String(text).split(/\n{2,}/);   // 以空行拆段
+  return paragraphs.map(p => {
+    const lines = p.split('\n');
+    const out = [];
+    for (const line of lines) {
+      const l = line.trim();
+      if (!l) continue;
+      if (!out.length) { out.push(l); continue; }
+      const prev = out[out.length - 1];
+      const lastCh = prev.slice(-1);
+      const nextFirst = l.charAt(0);
+      if (LINE_END_PUNCT.test(lastCh) || LINE_START_KEEP.test(nextFirst)) {
+        out.push(l);                     // 標點結尾／數字英文開頭 → 保留行界
+      } else {
+        out[out.length - 1] = prev + l;  // 冇標點 → 合併
+      }
+    }
+    return out.join('\n');
+  }).join('\n\n');
+}
+
 /* 分析一頁書（返回 {topic, content, chapter, page}） */
 async function analyzePage(imageDataUrl) {
   return aiComplete([{
@@ -291,7 +324,7 @@ async function runAnalysis() {
         results.push({
           id: uid(),
           topic: r.topic || '',
-          content: r.content || '',
+          content: r.content ? reflowContent(r.content) : '',
           chapter: r.chapter || '',
           page: r.page || ''
         });
