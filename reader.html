@@ -212,7 +212,7 @@ footer {
       if (book.book_title) t.textContent = book.book_title;
       document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
       rows = (Array.isArray(book.rows) ? book.rows : [])
-        .filter(r => (r.topic && r.topic.trim()) || (r.content && r.content.trim()))
+        .filter(r => r.topic && r.topic.trim())   /* 冇 topic 嘅 row 唔顯示 */
         .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }))
         .sort((a, b) => {
           const ka = pageSortKey(a.page), kb = pageSortKey(b.page);
