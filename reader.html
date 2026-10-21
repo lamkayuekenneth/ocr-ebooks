@@ -172,13 +172,20 @@ footer {
     t.textContent = file.replace(/^books\//, '').replace(/\.json$/, '');
     if (!file) { $('#book').innerHTML = '<div class="err">❌ 冇指定書檔（缺少 ?file= 參數）</div>'; return; }
     try {
-      const headers = { 'Accept': 'application/vnd.github.raw+json' };
+      const headers = { 'Accept': 'application/vnd.github+json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       const url = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) +
                   '/contents/' + encodeURIComponent(file) + '?ref=' + encodeURIComponent(branch);
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error('HTTP ' + res.status + '（檢查設定頁嘅 GitHub 資料）');
-      const book = await res.json();
+      const data = await res.json();
+      /* GitHub 可能回傳 base64 wrapper（無 raw header 時）：自己解碼，確保任何環境都一致 */
+      let book = data;
+      if (data && data.encoding === 'base64' && data.content) {
+        const bin = atob(data.content.replace(/\s/g, ''));
+        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+        book = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+      }
       if (book.book_title) t.textContent = book.book_title;
       document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
       rows = (Array.isArray(book.rows) ? book.rows : [])
