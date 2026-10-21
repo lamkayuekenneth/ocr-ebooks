@@ -50,7 +50,7 @@ header {
 #count { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center; }
 .arrow { padding: 6px 9px; font-size: 13px; }
 .chapters {
-  position: sticky; top: 61px; z-index: 15;
+  position: sticky; z-index: 15;          /* top 由 JS 按 header 實際高度設定，desktop/mobile 都浮頂 */
   background: var(--paper); border-bottom: 1px solid var(--line);
   padding: 8px 14px;
   display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;
@@ -72,6 +72,13 @@ main {
   font-size: 1.35em; font-weight: 800; letter-spacing: .5px;
   margin: 1.25em 0 .45em; color: var(--ink);
   line-height: 1.4;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.chapter-tag {
+  font-size: .55em; font-weight: 600; color: var(--accent);
+  background: #f3e8d2; border: 1px solid var(--line);
+  border-radius: 999px; padding: 2px 12px; white-space: nowrap;
+  flex: 0 0 auto; align-self: flex-start; margin-top: .5em;
 }
 .section .content {
   text-align: justify; text-justify: inter-ideograph;
@@ -99,7 +106,7 @@ footer {
   #search { width: 100%; }
   .search-wrap { flex-wrap: wrap; }
   main { padding: 18px 14px 70px; }
-  .chapters { top: auto; }
+  .chapters { padding: 6px 10px; }
 }
 </style>
 </head>
@@ -248,6 +255,12 @@ footer {
           const topic = document.createElement('div');
           topic.className = 'topic';
           topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
+          if (r.chapter) {
+            const tag = document.createElement('span');
+            tag.className = 'chapter-tag';
+            tag.textContent = r.chapter;
+            topic.appendChild(tag);
+          }
           curSec.appendChild(topic);
         }
         main.appendChild(curSec);
@@ -312,6 +325,13 @@ footer {
     $('#font-pct').textContent = Math.round(fontScale * 100) + '%';
     $('#book').style.fontSize = (19 * fontScale) + 'px';
   }
+
+  /* chapter 導航固定浮喺 header 之下（desktop / mobile 都準確） */
+  function fixChaptersTop() {
+    const h = document.querySelector('header').getBoundingClientRect().height;
+    document.querySelector('.chapters').style.top = h + 'px';
+  }
+  window.addEventListener('resize', fixChaptersTop);
   $('#font-up').addEventListener('click', () => { fontScale += 0.1; applyFont(); });
   $('#font-down').addEventListener('click', () => { fontScale -= 0.1; applyFont(); });
   $('#close').addEventListener('click', () => window.close());
@@ -325,6 +345,7 @@ footer {
   });
 
   applyFont();
+  fixChaptersTop();
   load();
 })();
 </script>
