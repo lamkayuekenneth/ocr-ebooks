@@ -78,7 +78,7 @@ main {
   white-space: pre-wrap;           /* 保留 \n\n 段落分隔 */
   word-break: break-word;
 }
-.section .content + .content { margin-top: 4px; }   /* 同 topic 多頁無縫接合，但唔痴實 */
+.section .content + .content { margin-top: 0; }   /* 同 topic 多頁完全無縫：行之間冇空行 */
 .section .content:empty::after { content: '（內容從缺）'; color: var(--muted); font-style: italic; }
 mark { background: var(--mark); color: #5d4037; padding: 0 2px; border-radius: 2px; }
 mark.active { background: var(--mark-act); outline: 2px solid #b07d00; }
@@ -254,9 +254,11 @@ footer {
         lastChapter = r.chapter;
         lastTopic = r.topic;
       }
+      let ctext = r.content || '';
+      if (curSec.childElementCount > 0) ctext = ctext.replace(/^\n+/, '');   /* 行間無縫：合併行唔留開頭空行 */
       const content = document.createElement('div');
       content.className = 'content';
-      content.innerHTML = searchQ ? hl(r.content, searchQ) : esc(r.content || '');
+      content.innerHTML = searchQ ? hl(ctext, searchQ) : esc(ctext);
       curSec.appendChild(content);
     });
     updateCount();
