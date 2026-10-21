@@ -241,7 +241,13 @@ footer {
       chip.title = '跳到「' + c + '」';
       chip.onclick = () => {
         const el = document.querySelector('.section[data-chapter="' + CSS.escape(c) + '"]');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        if (el) {
+          /* 減返 sticky header + chapter 導航列高度，避免遮住章節開頭 */
+          const offset = document.querySelector('header').getBoundingClientRect().height +
+                         document.querySelector('.chapters').getBoundingClientRect().height + 8;
+          const top = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }
       };
       wrap.appendChild(chip);
     });
