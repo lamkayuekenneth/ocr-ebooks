@@ -251,6 +251,8 @@ table { border-collapse: collapse; width: 100%; min-width: 760px; }
   font-family: inherit;
 }
 .meta-pair input.meta-input:focus { border-color: var(--accent); background: #fff; }
+/* page 固定窄欄（頁碼通常得幾個字，唔使拉咁闊） */
+.meta-pair input.page-input { flex: 0 0 58px; text-align: right; }
 #book-detail-table th { white-space: nowrap; word-break: keep-all; }
 #book-detail-table th small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); white-space: nowrap; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
@@ -371,9 +373,11 @@ td textarea { min-height: 90px; }
 }
 .modal-close:hover { background: #e9d3b4; }
 .picker-filters {
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr) auto;
   gap: 10px; padding: 14px 18px;
+  align-items: center;
 }
+.picker-filters .btn { white-space: nowrap; }
 .modal .table-wrap { margin: 0 18px 4px; overflow-y: auto; }
 .modal .hint { padding: 0 18px 14px; }
 

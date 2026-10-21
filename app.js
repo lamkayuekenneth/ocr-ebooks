@@ -1020,7 +1020,7 @@ function renderDetailRows() {
       const pg = document.createElement('input');
       pg.value = r.page || '';
       pg.placeholder = '頁碼';
-      pg.className = 'meta-input';
+      pg.className = 'meta-input page-input';
       pg.addEventListener('input', () => { r.page = pg.value; markDetailDirty(); });
       mp.appendChild(ch);
       mp.appendChild(pg);
