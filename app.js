@@ -757,12 +757,21 @@ async function refreshLibrary() {
     fileBtn.onclick = () => openBookMetaPopup(b.file);
     tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'title-wrap';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn small';
+    editBtn.textContent = '✏️ 編輯';
+    editBtn.title = '開啟內容編輯';
+    editBtn.onclick = () => openBook(b.file);
     const titleBtn = document.createElement('button');
     titleBtn.className = 'btn-link';
     titleBtn.innerHTML = hl(b.book_title || '—', filter);
-    titleBtn.title = '撳入去開啟內容';
-    titleBtn.onclick = () => openBook(b.file);
-    tdTitle.appendChild(titleBtn);
+    titleBtn.title = '喺新視窗閱讀呢本書';
+    titleBtn.onclick = () => openReader(b.file);
+    titleWrap.appendChild(editBtn);
+    titleWrap.appendChild(titleBtn);
+    tdTitle.appendChild(titleWrap);
     const tdAuthor = document.createElement('td');
     tdAuthor.innerHTML = hl(b.author || '—', filter);
     const tdCount = document.createElement('td');
@@ -944,6 +953,11 @@ function pageSortKey(p) {
   const s = String(p || '');
   const m = s.match(/\d+/);
   return m ? [0, parseInt(m[0], 10), s] : [1, 0, s];
+}
+
+/* 喺新視窗開閱讀器（paper-like 書本觀感：chapter 導航、字體縮放、搜尋 highlight + 前後跳） */
+function openReader(file) {
+  window.open('reader.html?file=' + encodeURIComponent(file), '_blank');
 }
 
 async function openBook(file) {

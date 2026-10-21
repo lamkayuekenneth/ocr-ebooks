@@ -173,6 +173,8 @@ label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; f
   word-break: break-all;
 }
 .btn-link:hover { color: var(--primary); }
+.title-wrap { display: flex; align-items: center; gap: 6px; }
+.title-wrap .btn { flex: 0 0 auto; }
 
 /* 設定頁分組標題 */
 .form-divider {

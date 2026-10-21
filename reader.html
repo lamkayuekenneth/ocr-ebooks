@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>閱讀器 · OCR eBooks</title>
+<style>
+:root {
+  --paper: #f6efe1;
+  --paper2: #efe4cd;
+  --ink: #3d3326;
+  --muted: #8a7b63;
+  --accent: #a8622a;
+  --mark: #ffd54f;
+  --mark-act: #ffb300;
+  --line: #ddd0b2;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', Georgia, 'Times New Roman', serif;
+}
+header {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--paper2); border-bottom: 1px solid var(--line);
+  padding: 10px 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+}
+.book-title {
+  font-size: 18px; font-weight: 800; margin-right: auto;
+  max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  letter-spacing: .5px;
+}
+.ctl { display: flex; align-items: center; gap: 5px; }
+.btn {
+  font-family: inherit; font-size: 14px;
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 10px; cursor: pointer;
+}
+.btn:hover { background: #fdf8ee; }
+.btn:disabled { opacity: .4; cursor: default; }
+#font-pct { font-size: 12px; color: var(--muted); min-width: 44px; text-align: center; }
+.search-wrap { display: flex; align-items: center; gap: 4px; }
+#search {
+  font-family: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 10px; width: min(300px, 40vw); background: #fff;
+}
+#count { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center; }
+.arrow { padding: 6px 9px; font-size: 13px; }
+.chapters {
+  position: sticky; top: 61px; z-index: 15;
+  background: var(--paper); border-bottom: 1px solid var(--line);
+  padding: 8px 14px;
+  display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;
+}
+.chip {
+  font-family: inherit; font-size: 13px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: #fdf9f0; color: var(--accent);
+  padding: 4px 14px; cursor: pointer; flex: 0 0 auto;
+}
+.chip:hover { background: #f7ead6; }
+main {
+  max-width: 780px; margin: 0 auto;
+  padding: 30px 22px 90px;
+  font-size: 19px; line-height: 1.9;
+}
+.section { margin-bottom: 2px; }
+.section .topic {
+  font-size: 1.35em; font-weight: 800; letter-spacing: .5px;
+  margin: 1.25em 0 .45em; color: var(--ink);
+  line-height: 1.4;
+}
+.section .content { text-align: justify; text-justify: inter-ideograph; }
+.section .content:empty::after { content: '（內容從缺）'; color: var(--muted); font-style: italic; }
+mark { background: var(--mark); color: #5d4037; padding: 0 2px; border-radius: 2px; }
+mark.active { background: var(--mark-act); outline: 2px solid #b07d00; }
+.empty {
+  text-align: center; color: var(--muted);
+  padding: 60px 20px; font-size: 17px;
+}
+.err { text-align: center; color: #b3261e; padding: 60px 20px; font-size: 16px; line-height: 1.7; }
+footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--paper2); border-top: 1px solid var(--line);
+  text-align: center; font-size: 12px; color: var(--muted);
+  padding: 6px;
+}
+@media (max-width: 640px) {
+  header { padding: 8px 10px; gap: 6px 8px; }
+  .book-title { font-size: 15px; max-width: 100%; width: 100%; }
+  #search { width: 100%; }
+  .search-wrap { flex-wrap: wrap; }
+  main { padding: 18px 14px 70px; }
+  .chapters { top: auto; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="book-title" id="book-title">⋯</div>
+  <div class="ctl">
+    <button class="btn" id="font-down" title="縮細字體">A−</button>
+    <span id="font-pct">100%</span>
+    <button class="btn" id="font-up" title="放大字體">A+</button>
+  </div>
+  <div class="search-wrap">
+    <input id="search" type="text" placeholder="🔍 搜尋全文…" autocomplete="off">
+    <span id="count"></span>
+    <button class="btn arrow" id="prev" title="上一個匹配">▲</button>
+    <button class="btn arrow" id="next" title="下一個匹配">▼</button>
+  </div>
+  <button class="btn" id="close" title="關閉">✕</button>
+</header>
+
+<div class="chapters" id="chapters"></div>
+
+<main id="book"></main>
+<footer>OCR eBooks 閱讀器 · 字體縮放會自動記低</footer>
+
+<script>
+(function () {
+  const $ = (sel) => document.querySelector(sel);
+
+  const params = new URLSearchParams(location.search);
+  const file = params.get('file') || '';
+  let settings = {};
+  try { settings = JSON.parse(localStorage.getItem('ocreb_settings') || '{}'); } catch (e) { /* ignore */ }
+  const owner = settings.github_owner || 'lamkayuekenneth';
+  const repo  = settings.github_repo  || 'ocr-ebooks';
+  const branch = settings.github_branch || 'main';
+  const token = settings.github_token || '';
+
+  let rows = [];
+  let fontScale = parseFloat(localStorage.getItem('ocr_reader_font') || '1');
+  if (!(fontScale >= 0.6 && fontScale <= 2)) fontScale = 1;
+  let searchQ = '';
+  let matches = [];
+  let matchIdx = -1;
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+  function hl(text, q) {
+    const s = String(text ?? '');
+    if (!q) return esc(s);
+    const low = s.toLowerCase(), ql = q.toLowerCase();
+    if (!low.includes(ql)) return esc(s);
+    let out = '', i = 0;
+    while (true) {
+      const j = low.indexOf(ql, i);
+      if (j < 0) { out += esc(s.slice(i)); break; }
+      out += esc(s.slice(i, j)) + '<mark>' + esc(s.slice(j, j + ql.length)) + '</mark>';
+      i = j + ql.length;
+    }
+    return out;
+  }
+  function pageSortKey(p) {
+    const s = String(p || '').trim();
+    const m = /(\d+)([a-zA-Z\u3400-\u9fff]?)/.exec(s);
+    if (!m) return [Infinity, Infinity, s];
+    return [parseInt(m[1], 10) || 0, m[2] ? 1 : 0, String(m[2] || '').toLowerCase()];
+  }
+
+  async function load() {
+    const t = $('#book-title');
+    t.textContent = file.replace(/^books\//, '').replace(/\.json$/, '');
+    if (!file) { $('#book').innerHTML = '<div class="err">❌ 冇指定書檔（缺少 ?file= 參數）</div>'; return; }
+    try {
+      const headers = { 'Accept': 'application/vnd.github.raw+json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const url = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) +
+                  '/contents/' + encodeURIComponent(file) + '?ref=' + encodeURIComponent(branch);
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error('HTTP ' + res.status + '（檢查設定頁嘅 GitHub 資料）');
+      const book = await res.json();
+      if (book.book_title) t.textContent = book.book_title;
+      document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
+      rows = (Array.isArray(book.rows) ? book.rows : [])
+        .filter(r => (r.topic && r.topic.trim()) || (r.content && r.content.trim()))
+        .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }))
+        .sort((a, b) => {
+          const ka = pageSortKey(a.page), kb = pageSortKey(b.page);
+          return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
+        });
+      buildChapters();
+      render();
+    } catch (e) {
+      $('#book').innerHTML = '<div class="err">❌ 讀取失敗：' + esc(e.message) + '<br><br><a href="index.html" style="color:var(--accent)">返回主頁</a></div>';
+    }
+  }
+
+  function buildChapters() {
+    const seen = new Set();
+    rows.forEach(r => { const c = r.chapter; if (c && !seen.has(c)) seen.add(c); });
+    const list = Array.from(seen);
+    const wrap = $('#chapters');
+    wrap.innerHTML = '';
+    if (!list.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+    list.forEach(c => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = c;
+      chip.title = '跳到「' + c + '」';
+      chip.onclick = () => {
+        const el = document.querySelector('.section[data-chapter="' + CSS.escape(c) + '"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      };
+      wrap.appendChild(chip);
+    });
+  }
+
+  function render() {
+    const main = $('#book');
+    main.style.fontSize = (19 * fontScale) + 'px';
+    main.innerHTML = '';
+    if (!rows.length) {
+      main.innerHTML = '<div class="empty">呢本書未有內容。</div>';
+      updateCount();
+      return;
+    }
+    rows.forEach(r => {
+      const sec = document.createElement('div');
+      sec.className = 'section';
+      if (r.chapter) sec.dataset.chapter = r.chapter;
+      const topic = document.createElement('div');
+      topic.className = 'topic';
+      topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
+      const content = document.createElement('div');
+      content.className = 'content';
+      content.innerHTML = searchQ ? hl(r.content, searchQ) : esc(r.content || '');
+      sec.appendChild(topic);
+      sec.appendChild(content);
+      main.appendChild(sec);
+    });
+    updateCount();
+  }
+
+  function updateCount() {
+    matches = Array.from(document.querySelectorAll('#book mark'));
+    if (searchQ) {
+      $('#count').textContent = matches.length ? '匹配 ' + (matchIdx + 1) + ' / ' + matches.length : '0 個匹配';
+      $('#prev').disabled = !matches.length;
+      $('#next').disabled = !matches.length;
+      if (!matches.length) matchIdx = -1;
+    } else {
+      $('#count').textContent = '';
+      $('#prev').disabled = true;
+      $('#next').disabled = true;
+      matchIdx = -1;
+    }
+  }
+
+  function scrollToMatch() {
+    if (!matches.length) return;
+    if (matchIdx < 0 || matchIdx >= matches.length) matchIdx = 0;
+    const m = matches[matchIdx];
+    matches.forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+    $('#count').textContent = '匹配 ' + (matchIdx + 1) + ' / ' + matches.length;
+    m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  $('#search').addEventListener('input', () => {
+    searchQ = $('#search').value.trim().toLowerCase();
+    matchIdx = -1;
+    render();
+    if (matches.length) { matchIdx = 0; scrollToMatch(); }
+  });
+  $('#prev').addEventListener('click', () => {
+    if (!matches.length) return;
+    matchIdx = (matchIdx - 1 + matches.length) % matches.length;
+    scrollToMatch();
+  });
+  $('#next').addEventListener('click', () => {
+    if (!matches.length) return;
+    matchIdx = (matchIdx + 1) % matches.length;
+    scrollToMatch();
+  });
+
+  function applyFont() {
+    fontScale = Math.min(2, Math.max(0.6, Math.round(fontScale * 10) / 10));
+    localStorage.setItem('ocr_reader_font', String(fontScale));
+    $('#font-pct').textContent = Math.round(fontScale * 100) + '%';
+    $('#book').style.fontSize = (19 * fontScale) + 'px';
+  }
+  $('#font-up').addEventListener('click', () => { fontScale += 0.1; applyFont(); });
+  $('#font-down').addEventListener('click', () => { fontScale -= 0.1; applyFont(); });
+  $('#close').addEventListener('click', () => window.close());
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (window.opener) { window.close(); } return; }
+    if (e.target === $('#search')) return;
+    if (e.key === 'ArrowUp') { $('#prev').click(); }
+    if (e.key === 'ArrowDown') { $('#next').click(); }
+    if (e.key === '+' || e.key === '=') { fontScale += 0.1; applyFont(); }
+    if (e.key === '-') { fontScale -= 0.1; applyFont(); }
+  });
+
+  applyFont();
+  load();
+})();
+</script>
+</body>
+</html>
