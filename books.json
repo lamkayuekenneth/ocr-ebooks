@@ -8,5 +8,10 @@
     "file": "books/test.json",
     "book_title": "TTTT",
     "author": "ABC"
+  },
+  {
+    "file": "books/爸爸童軍手帳.json",
+    "book_title": "爸爸童軍手帳",
+    "author": ""
   }
 ]
