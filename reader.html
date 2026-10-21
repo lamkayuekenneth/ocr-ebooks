@@ -23,15 +23,20 @@ body {
 header {
   position: sticky; top: 0; z-index: 20;
   background: var(--paper2); border-bottom: 1px solid var(--line);
-  padding: 10px 14px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 8px 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
 }
+/* 行 1：書名 + font 調整（A−/A+ 喺書名最右邊同一行） */
+.row1 { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
 .book-title {
-  font-size: 18px; font-weight: 800; margin-right: auto;
-  max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  letter-spacing: .5px;
+  font-size: 18px; font-weight: 800; letter-spacing: .5px;
+  margin-right: auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.ctl { display: flex; align-items: center; gap: 5px; }
+.ctl { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+/* 行 2：搜尋相關全部同一行 */
+.row2 { display: flex; align-items: center; width: 100%; min-width: 0; }
+.search-wrap { display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0; }
 .btn {
   font-family: inherit; font-size: 14px;
   background: #fff; color: var(--ink);
@@ -41,13 +46,15 @@ header {
 .btn:hover { background: #fdf8ee; }
 .btn:disabled { opacity: .4; cursor: default; }
 #font-pct { font-size: 12px; color: var(--muted); min-width: 44px; text-align: center; }
-.search-wrap { display: flex; align-items: center; gap: 4px; }
 #search {
   font-family: inherit; font-size: 14px;
   border: 1px solid var(--line); border-radius: 8px;
-  padding: 6px 10px; width: min(300px, 40vw); background: #fff;
+  padding: 6px 10px; flex: 1 1 auto; min-width: 0; background: #fff;
 }
-#count { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center; }
+#count {
+  font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: center;
+  align-self: center; line-height: 1;
+}
 .arrow { padding: 6px 9px; font-size: 13px; }
 .chapters {
   position: sticky; z-index: 15;          /* top 由 JS 按 header 實際高度設定，desktop/mobile 都浮頂 */
@@ -101,10 +108,10 @@ footer {
   padding: 6px;
 }
 @media (max-width: 640px) {
-  header { padding: 8px 10px; gap: 6px 8px; }
-  .book-title { font-size: 15px; max-width: 100%; width: 100%; }
-  #search { width: 100%; }
-  .search-wrap { flex-wrap: wrap; }
+  header { padding: 6px 10px; gap: 5px 8px; }
+  .book-title { font-size: 15px; }
+  .btn { padding: 5px 8px; font-size: 13px; }
+  #search { font-size: 13px; padding: 5px 8px; }
   main { padding: 18px 14px 70px; }
   .chapters { padding: 6px 10px; }
 }
@@ -113,19 +120,23 @@ footer {
 <body>
 
 <header>
-  <div class="book-title" id="book-title">⋯</div>
-  <div class="ctl">
-    <button class="btn" id="font-down" title="縮細字體">A−</button>
-    <span id="font-pct">100%</span>
-    <button class="btn" id="font-up" title="放大字體">A+</button>
+  <div class="row1">
+    <div class="book-title" id="book-title">⋯</div>
+    <div class="ctl">
+      <button class="btn" id="font-down" title="縮細字體">A−</button>
+      <span id="font-pct">100%</span>
+      <button class="btn" id="font-up" title="放大字體">A+</button>
+    </div>
   </div>
-  <div class="search-wrap">
-    <input id="search" type="text" placeholder="🔍 搜尋全文…" autocomplete="off">
-    <span id="count"></span>
-    <button class="btn arrow" id="prev" title="上一個匹配">▲</button>
-    <button class="btn arrow" id="next" title="下一個匹配">▼</button>
+  <div class="row2">
+    <div class="search-wrap">
+      <input id="search" type="text" placeholder="🔍 搜尋全文…" autocomplete="off">
+      <span id="count"></span>
+      <button class="btn arrow" id="prev" title="上一個匹配">▲</button>
+      <button class="btn arrow" id="next" title="下一個匹配">▼</button>
+      <button class="btn" id="close" title="關閉">✕</button>
+    </div>
   </div>
-  <button class="btn" id="close" title="關閉">✕</button>
 </header>
 
 <div class="chapters" id="chapters"></div>
