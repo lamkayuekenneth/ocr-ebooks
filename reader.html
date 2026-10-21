@@ -77,15 +77,15 @@ main {
 .section { margin-bottom: 2px; }
 .section .topic {
   font-size: 1.35em; font-weight: 800; letter-spacing: .5px;
-  margin: 1.25em 0 .45em; color: var(--ink);
+  margin: .3em 0 .45em; color: var(--ink);
   line-height: 1.4;
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
 }
 .chapter-tag {
-  font-size: .55em; font-weight: 600; color: var(--accent);
+  display: inline-block;
+  font-size: .75em; font-weight: 600; color: var(--accent);
   background: #f3e8d2; border: 1px solid var(--line);
-  border-radius: 999px; padding: 2px 12px; white-space: nowrap;
-  flex: 0 0 auto; align-self: flex-start; margin-top: .5em;
+  border-radius: 999px; padding: 2px 12px;
+  margin: 1.4em 0 0;
 }
 .section .content {
   text-align: justify; text-justify: inter-ideograph;
@@ -263,15 +263,16 @@ footer {
         curSec.className = 'section';
         if (r.chapter) curSec.dataset.chapter = r.chapter;
         if (r.topic !== lastTopic) {
+          /* chapter 標示放喺 topic 之上 */
+          if (r.chapter) {
+            const tag = document.createElement('div');
+            tag.className = 'chapter-tag';
+            tag.textContent = r.chapter;
+            curSec.appendChild(tag);
+          }
           const topic = document.createElement('div');
           topic.className = 'topic';
           topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
-          if (r.chapter) {
-            const tag = document.createElement('span');
-            tag.className = 'chapter-tag';
-            tag.textContent = r.chapter;
-            topic.appendChild(tag);
-          }
           curSec.appendChild(topic);
         }
         main.appendChild(curSec);
