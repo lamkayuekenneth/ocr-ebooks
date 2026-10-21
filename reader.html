@@ -80,6 +80,7 @@ main {
   margin: .3em 0 .45em; color: var(--ink);
   line-height: 1.4;
 }
+.section .topic.no-tag { margin-top: 1.6em; }   /* chapter 冇變 → 冇 tag，topic 前留空行分隔 */
 .chapter-tag {
   display: inline-block;
   font-size: .75em; font-weight: 600; color: var(--accent);
@@ -273,6 +274,7 @@ footer {
         if (r.topic !== lastTopic) {
           const topic = document.createElement('div');
           topic.className = 'topic';
+          if (!chapterChanged) topic.classList.add('no-tag');   /* 冇 chapter tag → topic 前加空行分隔 */
           topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '');
           curSec.appendChild(topic);
         }
