@@ -259,20 +259,21 @@ footer {
     rows.forEach(r => {
       /* chapter 或 topic 改變 → 開新 section；topic 同上一行一樣就唔重複標題，內容直接接落去 */
       if (r.chapter !== lastChapter || r.topic !== lastTopic) {
+        const chapterChanged = r.chapter !== lastChapter;
         curSec = document.createElement('div');
         curSec.className = 'section';
         if (r.chapter) curSec.dataset.chapter = r.chapter;
+        /* chapter 標示：只有 chapter 同上一 row 唔同先至顯示（唔重複） */
+        if (chapterChanged && r.chapter) {
+          const tag = document.createElement('div');
+          tag.className = 'chapter-tag';
+          tag.textContent = r.chapter;
+          curSec.appendChild(tag);
+        }
         if (r.topic !== lastTopic) {
-          /* chapter 標示放喺 topic 之上 */
-          if (r.chapter) {
-            const tag = document.createElement('div');
-            tag.className = 'chapter-tag';
-            tag.textContent = r.chapter;
-            curSec.appendChild(tag);
-          }
           const topic = document.createElement('div');
           topic.className = 'topic';
-          topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
+          topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '');
           curSec.appendChild(topic);
         }
         main.appendChild(curSec);
