@@ -19,6 +19,22 @@ function esc(s) {
   }[c]));
 }
 
+/* highlight matched words：將 q 命中的子串包 <mark>，其餘 esc */
+function hl(text, q) {
+  const s = String(text ?? '');
+  if (!q) return esc(s);
+  const low = s.toLowerCase(), ql = q.toLowerCase();
+  if (!low.includes(ql)) return esc(s);
+  let out = '', i = 0;
+  while (true) {
+    const j = low.indexOf(ql, i);
+    if (j < 0) { out += esc(s.slice(i)); break; }
+    out += esc(s.slice(i, j)) + '<mark>' + esc(s.slice(j, j + ql.length)) + '</mark>';
+    i = j + ql.length;
+  }
+  return out;
+}
+
 function toast(msg, type = 'info') {
   const el = $('#toast');
   el.textContent = msg;
@@ -428,11 +444,11 @@ function autosize(el) {
 /* =========================================================
  * 全屏內容編輯：撳 content textarea 彈大編輯框
  * ========================================================= */
-let fullEditTarget = null;
+let fullEditTarget = null;   /* {el: textarea} 或 {row, key}（filter 檢視模式） */
 
-function openFullEdit(textarea) {
-  fullEditTarget = textarea;
-  $('#full-edit-text').value = textarea.value;
+function openFullEdit(target) {
+  fullEditTarget = target;
+  $('#full-edit-text').value = target.el ? target.el.value : (target.row[target.key] || '');
   $('#full-edit-overlay').classList.remove('hidden');
   const t = $('#full-edit-text');
   t.focus();
@@ -441,10 +457,19 @@ function openFullEdit(textarea) {
 
 function closeFullEdit() {
   if (!fullEditTarget) return;
-  fullEditTarget.value = $('#full-edit-text').value;
-  autosize(fullEditTarget);
+  const v = $('#full-edit-text').value;
+  if (fullEditTarget.el) {
+    fullEditTarget.el.value = v;
+    autosize(fullEditTarget.el);
+  } else {
+    fullEditTarget.row[fullEditTarget.key] = v;
+    markDetailDirty();
+  }
   fullEditTarget = null;
   $('#full-edit-overlay').classList.add('hidden');
+  /* filter 檢視模式：寫返入 row 之後 re-render，highlight 即時更新 */
+  const dc = $('#book-detail-card');
+  if (dc && !dc.classList.contains('hidden') && typeof renderDetailRows === 'function') renderDetailRows();
 }
 
 function bindFullEdit() {
@@ -452,7 +477,7 @@ function bindFullEdit() {
   document.addEventListener('click', e => {
     const t = e.target;
     if (t && t.tagName === 'TEXTAREA' && t.classList.contains('content-text')) {
-      openFullEdit(t);
+      openFullEdit({ el: t });
     }
   });
   $('#full-edit-close').addEventListener('click', closeFullEdit);
@@ -591,23 +616,22 @@ function renderFilePicker() {
   tbody.innerHTML = '';
   rows.forEach(e => {
     const tr = document.createElement('tr');
-    if (fFile || fTitle || fAuthor) tr.classList.add('filter-hit');   /* filter 匹配 highlight */
     const tdFile = document.createElement('td');
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
-    fileBtn.textContent = String(e.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
+    fileBtn.innerHTML = hl(String(e.file).replace(/^books\//, ''), fFile);   /* 唔顯示 books/ 前綴 + matched 高亮 */
     fileBtn.title = '撳入去揀選 ' + e.file;
     fileBtn.onclick = () => pickExistingFile(e.file);
     tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
     const titleBtn = document.createElement('button');
     titleBtn.className = 'btn-link';
-    titleBtn.textContent = e.book_title || '—';
+    titleBtn.innerHTML = hl(e.book_title || '—', fTitle);
     titleBtn.title = '撳入去揀選 ' + e.file;
     titleBtn.onclick = () => pickExistingFile(e.file);
     tdTitle.appendChild(titleBtn);
     const tdAuthor = document.createElement('td');
-    tdAuthor.textContent = e.author || '—';
+    tdAuthor.innerHTML = hl(e.author || '—', fAuthor);
     const tdCount = document.createElement('td');
     tdCount.className = 'row-num';
     tdCount.textContent = e.count != null ? String(e.count) : '—';
@@ -725,23 +749,22 @@ async function refreshLibrary() {
   tbody.innerHTML = '';
   rows.forEach(b => {
     const tr = document.createElement('tr');
-    if (filter) tr.classList.add('filter-hit');   /* filter 匹配 highlight */
     const tdFile = document.createElement('td');
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
-    fileBtn.textContent = String(b.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
+    fileBtn.innerHTML = hl(String(b.file).replace(/^books\//, ''), filter);   /* 唔顯示 books/ 前綴 + matched 高亮 */
     fileBtn.title = b.file + '（撳入去編輯書名 / 作者 / 檔名）';
     fileBtn.onclick = () => openBookMetaPopup(b.file);
     tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
     const titleBtn = document.createElement('button');
     titleBtn.className = 'btn-link';
-    titleBtn.textContent = b.book_title || '—';
+    titleBtn.innerHTML = hl(b.book_title || '—', filter);
     titleBtn.title = '撳入去開啟內容';
     titleBtn.onclick = () => openBook(b.file);
     tdTitle.appendChild(titleBtn);
     const tdAuthor = document.createElement('td');
-    tdAuthor.textContent = b.author || '—';
+    tdAuthor.innerHTML = hl(b.author || '—', filter);
     const tdCount = document.createElement('td');
     tdCount.className = 'row-num';
     tdCount.textContent = '—';
@@ -963,49 +986,69 @@ function renderDetailRows() {
     const mCo = !fCont || (r.content || '').toLowerCase().includes(fCont);
     if (hasFilter && !(mT && mC && mCo)) return;   /* 唔匹配 → 隱藏 */
     const tr = document.createElement('tr');
-    if (hasFilter) tr.classList.add('filter-hit');   /* 匹配 highlight */
-    const mk = (tag, key, ph) => {
-      const td = document.createElement('td');
-      const el = document.createElement(tag);
-      el.value = r[key] || '';
-      el.placeholder = ph || '';
-      if (tag === 'textarea') el.classList.add('content-text');   /* 撳入去彈全屏編輯 */
-      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); markDetailDirty(); });
-      td.appendChild(el);
-      return td;
-    };
-    /* # 欄唔顯示：唔生成，欄位結構 = Topic | Content | ✕ */
 
-    /* Topic（word wrap）+ Chapter / Page 細字並排——窄屏都顯示到 */
+    /* Topic cell：正常 = textarea + chapter/page inputs；filter 檢視 = mark 高亮（撳入彈全屏） */
     const topicTd = document.createElement('td');
-    const tc = document.createElement('div');
-    tc.className = 'topic-cell';
-    const tInput = document.createElement('textarea');
-    tInput.value = r.topic || '';
-    tInput.placeholder = '主題';
-    tInput.className = 'topic-input';
-    tInput.rows = 1;
-    tInput.addEventListener('input', () => { r.topic = tInput.value; autosize(tInput); markDetailDirty(); });
-    const mp = document.createElement('div');
-    mp.className = 'meta-pair';
-    const ch = document.createElement('input');
-    ch.value = r.chapter || '';
-    ch.placeholder = '章節';
-    ch.className = 'meta-input';
-    ch.addEventListener('input', () => { r.chapter = ch.value; markDetailDirty(); });
-    const pg = document.createElement('input');
-    pg.value = r.page || '';
-    pg.placeholder = '頁碼';
-    pg.className = 'meta-input';
-    pg.addEventListener('input', () => { r.page = pg.value; markDetailDirty(); });
-    mp.appendChild(ch);
-    mp.appendChild(pg);
-    tc.appendChild(tInput);
-    tc.appendChild(mp);
-    topicTd.appendChild(tc);
+    if (hasFilter) {
+      const tv = document.createElement('div');
+      tv.className = 'topic-view';
+      tv.innerHTML =
+        '<div class="topic-view-main">' + hl(r.topic, fTopic) + '</div>' +
+        '<div class="meta-pair">' +
+          '<span class="meta-chip">' + hl(r.chapter, fChap) + '</span>' +
+          '<span class="meta-chip">頁 ' + esc(r.page) + '</span>' +
+        '</div>';
+      tv.title = '撳入去編輯';
+      tv.addEventListener('click', () => openFullEdit({ row: r, key: 'topic' }));
+      topicTd.appendChild(tv);
+    } else {
+      const tc = document.createElement('div');
+      tc.className = 'topic-cell';
+      const tInput = document.createElement('textarea');
+      tInput.value = r.topic || '';
+      tInput.placeholder = '主題';
+      tInput.className = 'topic-input';
+      tInput.rows = 1;
+      tInput.addEventListener('input', () => { r.topic = tInput.value; autosize(tInput); markDetailDirty(); });
+      const mp = document.createElement('div');
+      mp.className = 'meta-pair';
+      const ch = document.createElement('input');
+      ch.value = r.chapter || '';
+      ch.placeholder = '章節';
+      ch.className = 'meta-input';
+      ch.addEventListener('input', () => { r.chapter = ch.value; markDetailDirty(); });
+      const pg = document.createElement('input');
+      pg.value = r.page || '';
+      pg.placeholder = '頁碼';
+      pg.className = 'meta-input';
+      pg.addEventListener('input', () => { r.page = pg.value; markDetailDirty(); });
+      mp.appendChild(ch);
+      mp.appendChild(pg);
+      tc.appendChild(tInput);
+      tc.appendChild(mp);
+      topicTd.appendChild(tc);
+    }
     tr.appendChild(topicTd);
 
-    tr.appendChild(mk('textarea', 'content', '正文'));
+    /* Content cell：正常 = textarea；filter 檢視 = mark 高亮（撳入彈全屏） */
+    const contentTd = document.createElement('td');
+    if (hasFilter) {
+      const cv = document.createElement('div');
+      cv.className = 'content-view';
+      cv.innerHTML = hl(r.content, fCont);
+      cv.title = '撳入去編輯';
+      cv.addEventListener('click', () => openFullEdit({ row: r, key: 'content' }));
+      contentTd.appendChild(cv);
+    } else {
+      const cw = document.createElement('textarea');
+      cw.value = r.content || '';
+      cw.placeholder = '正文';
+      cw.className = 'content-text';   /* 撳入去彈全屏編輯 */
+      cw.addEventListener('input', () => { r.content = cw.value; autosize(cw); markDetailDirty(); });
+      contentTd.appendChild(cw);
+    }
+    tr.appendChild(contentTd);
+
     const act = document.createElement('td');
     const del = document.createElement('button');
     del.className = 'btn danger small';
@@ -1023,7 +1066,8 @@ function renderDetailRows() {
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('textarea').forEach(autosize);
-  if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
+  if (!hasFilter && !detailRows.length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
+  if (hasFilter && !tbody.querySelectorAll('tr').length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">冇相符嘅內容，調整篩選條件。</td></tr>';
 }
 
 async function saveDetail() {
@@ -1331,6 +1375,10 @@ function bindEvents() {
   });
   ['df-topic', 'df-chapter', 'df-content'].forEach(id => {
     $('#' + id).addEventListener('input', renderDetailRows);
+  });
+  $('#btn-clear-detail-filters').addEventListener('click', () => {
+    $('#df-topic').value = ''; $('#df-chapter').value = ''; $('#df-content').value = '';
+    renderDetailRows();
   });
 
   /* 書庫：編輯書名 / 作者 popup */
