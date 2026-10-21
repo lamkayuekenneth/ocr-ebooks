@@ -73,7 +73,12 @@ main {
   margin: 1.25em 0 .45em; color: var(--ink);
   line-height: 1.4;
 }
-.section .content { text-align: justify; text-justify: inter-ideograph; }
+.section .content {
+  text-align: justify; text-justify: inter-ideograph;
+  white-space: pre-wrap;           /* 保留 \n\n 段落分隔 */
+  word-break: break-word;
+}
+.section .content + .content { margin-top: 4px; }   /* 同 topic 多頁無縫接合，但唔痴實 */
 .section .content:empty::after { content: '（內容從缺）'; color: var(--muted); font-style: italic; }
 mark { background: var(--mark); color: #5d4037; padding: 0 2px; border-radius: 2px; }
 mark.active { background: var(--mark-act); outline: 2px solid #b07d00; }
@@ -232,19 +237,27 @@ footer {
       updateCount();
       return;
     }
+    let lastChapter = null, lastTopic = null, curSec = null;
     rows.forEach(r => {
-      const sec = document.createElement('div');
-      sec.className = 'section';
-      if (r.chapter) sec.dataset.chapter = r.chapter;
-      const topic = document.createElement('div');
-      topic.className = 'topic';
-      topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
+      /* chapter 或 topic 改變 → 開新 section；topic 同上一行一樣就唔重複標題，內容直接接落去 */
+      if (r.chapter !== lastChapter || r.topic !== lastTopic) {
+        curSec = document.createElement('div');
+        curSec.className = 'section';
+        if (r.chapter) curSec.dataset.chapter = r.chapter;
+        if (r.topic !== lastTopic) {
+          const topic = document.createElement('div');
+          topic.className = 'topic';
+          topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '（無主題）');
+          curSec.appendChild(topic);
+        }
+        main.appendChild(curSec);
+        lastChapter = r.chapter;
+        lastTopic = r.topic;
+      }
       const content = document.createElement('div');
       content.className = 'content';
       content.innerHTML = searchQ ? hl(r.content, searchQ) : esc(r.content || '');
-      sec.appendChild(topic);
-      sec.appendChild(content);
-      main.appendChild(sec);
+      curSec.appendChild(content);
     });
     updateCount();
   }
