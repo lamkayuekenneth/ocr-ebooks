@@ -955,10 +955,7 @@ function renderDetailRows() {
       td.appendChild(el);
       return td;
     };
-    const num = document.createElement('td');
-    num.className = 'row-num';
-    num.textContent = String(i + 1);
-    tr.appendChild(num);
+    /* # 欄唔顯示：唔生成，欄位結構 = Topic | Content | ✕ */
 
     /* Topic（word wrap）+ Chapter / Page 細字並排——窄屏都顯示到 */
     const topicTd = document.createElement('td');
@@ -1006,7 +1003,7 @@ function renderDetailRows() {
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('textarea').forEach(autosize);
-  if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="4" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
+  if (!detailRows.length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
 }
 
 async function saveDetail() {

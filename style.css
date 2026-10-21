@@ -251,6 +251,8 @@ table { border-collapse: collapse; width: 100%; min-width: 760px; }
   font-family: inherit;
 }
 .meta-pair input.meta-input:focus { border-color: var(--accent); background: #fff; }
+#book-detail-table th { white-space: nowrap; word-break: keep-all; }
+#book-detail-table th small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); white-space: nowrap; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
 th { background: #f6ead6; font-size: 13px; color: var(--muted); position: sticky; top: 0; }
 tbody tr:hover { background: #fdf6ea; }
