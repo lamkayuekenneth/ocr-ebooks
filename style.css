@@ -256,6 +256,9 @@ table { border-collapse: collapse; width: 100%; min-width: 760px; }
 th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
 th { background: #f6ead6; font-size: 13px; color: var(--muted); position: sticky; top: 0; }
 tbody tr:hover { background: #fdf6ea; }
+/* filter 匹配行 highlight */
+tbody tr.filter-hit { background: #fdf3cf !important; }
+tbody tr.filter-hit:hover { background: #fbeba9 !important; }
 tbody tr:last-child td { border-bottom: none; }
 td input, td textarea {
   font-family: inherit; font-size: 13px;

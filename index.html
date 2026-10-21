@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OCR eBooks — 書本掃描記事</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -96,6 +97,11 @@
     <div class="card hidden" id="book-detail-card">
       <h2 id="book-detail-title"></h2>
       <p class="hint">按 Page 排序；每條 row 都可以直接編輯，刪除後撳「儲存修改」寫返入 repo。</p>
+      <div class="picker-filters" id="detail-filters">
+        <input id="df-topic" class="input" placeholder="🔍 篩選 Topic">
+        <input id="df-chapter" class="input" placeholder="🔍 篩選 Chapter">
+        <input id="df-content" class="input" placeholder="🔍 篩選 Content">
+      </div>
       <div class="table-wrap">
         <table id="book-detail-table">
           <thead>
@@ -106,7 +112,7 @@
       </div>
       <div class="btn-group">
         <button type="button" class="btn success" id="btn-detail-save">💾 儲存修改</button>
-        <button type="button" class="btn" id="btn-detail-back">← 返回書庫</button>
+        <button type="button" class="btn" id="btn-detail-back">✕ 關閉此書</button>
       </div>
     </div>
   </section>
@@ -114,50 +120,7 @@
   <!-- ============ 設定頁 ============ -->
   <section id="page-settings" class="page">
     <div class="card">
-      <h2>設定</h2>
-      <div class="form-grid">
-        <label>GitHub Owner
-          <input id="set-owner" class="input" autocomplete="off">
-        </label>
-        <label>GitHub Repo
-          <input id="set-repo" class="input" autocomplete="off">
-        </label>
-        <label>Branch
-          <input id="set-branch" class="input" autocomplete="off">
-        </label>
-        <label>GitHub Token（要 Contents 讀寫權限）
-          <input id="set-gh-token" class="input" type="password" autocomplete="off">
-        </label>
-        <label>AI Model（讀內容）
-          <input id="set-model" class="input" autocomplete="off">
-        </label>
-        <label>Base URL
-          <input id="set-base-url" class="input" autocomplete="off">
-        </label>
-        <label class="span-2">API Key（讀內容）
-          <input id="set-api-key" class="input" type="password" autocomplete="off">
-        </label>
-      </div>
-      <h3 class="form-divider">認書名（封面）專用設定 —— 唔填就自動用上面「讀內容」嗰組</h3>
-      <div class="form-grid">
-        <label>AI Model（認書名）
-          <input id="set-title-model" class="input" autocomplete="off">
-        </label>
-        <label>API Key（認書名）
-          <input id="set-title-api-key" class="input" type="password" autocomplete="off">
-        </label>
-      </div>
-      <div class="security-note">
-        🔒 <b>私隱設計</b>：GitHub Token 同 API Key 只會存喺你自己瀏覽器嘅 localStorage，<b>永遠唔會寫入 repo</b>。
-        repo 入面嘅 <code>settings.json</code> 只係非敏感預設（owner / repo / model / base URL），key 欄位一律留空，
-        就算 repo 係 public 都唔會洩漏任何 key。
-      </div>
-      <button type="button" class="btn success" id="btn-save-settings">💾 儲存設定</button>
-      <div id="settings-status" class="status"></div>
-    </div>
-
-    <div class="card">
-      <h2>狀態檢查 &amp; 連線測試</h2>
+      <h2>狀態檢查</h2>
       <p class="hint">以下係呢部裝置 + 呢個瀏覽器而家儲存嘅設定。呢啲資料唔會跨裝置 / 跨瀏覽器同步——換咗手機、另一部機或者另一個瀏覽器開網頁，要重新填一次。Key 只會顯示尾 4 位。</p>
       <div class="status-table">
         <div class="st-row"><span class="st-label">GitHub Token（PAT）</span><span class="st-value" id="st-gh-token">—</span></div>
@@ -168,12 +131,74 @@
         <div class="st-row"><span class="st-label">AI Model（認書名）</span><span class="st-value" id="st-title-model">—</span></div>
         <div class="st-row"><span class="st-label">Base URL</span><span class="st-value" id="st-base-url">—</span></div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Git 設定</h2>
+      <div class="form-grid">
+        <label>GitHub Owner
+          <input id="set-owner" class="input" autocomplete="off">
+        </label>
+        <label>GitHub Repo
+          <input id="set-repo" class="input" autocomplete="off">
+        </label>
+        <label>Branch
+          <input id="set-branch" class="input" autocomplete="off">
+        </label>
+        <label class="span-2">GitHub Token（要 Contents 讀寫權限）
+          <input id="set-gh-token" class="input" type="password" autocomplete="off">
+        </label>
+      </div>
       <div class="btn-group">
-        <button type="button" class="btn" id="btn-test-ai">🔍 測試 AI API</button>
+        <button type="button" class="btn success" id="btn-save-git">💾 儲存 Git 設定</button>
         <button type="button" class="btn" id="btn-test-gh">🔍 測試 GitHub API</button>
       </div>
-      <div id="test-result" class="status"></div>
-      <p class="hint">測試 AI API 會向 AI 供應商發一個極短嘅請求（消耗極少量 token），驗證 API Key 同模型設定是否有效。</p>
+      <div id="test-result-gh" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>認書名及作者設定（封面）—— 唔填就自動用「認書內容」嗰組</h2>
+      <div class="form-grid">
+        <label>AI Model（認書名）
+          <input id="set-title-model" class="input" autocomplete="off">
+        </label>
+        <label class="span-2">API Key（認書名）
+          <input id="set-title-api-key" class="input" type="password" autocomplete="off">
+        </label>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn success" id="btn-save-title">💾 儲存書名設定</button>
+        <button type="button" class="btn" id="btn-test-title-ai">🔍 測試書名 AI</button>
+      </div>
+      <div id="test-result-title" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>認書內容設定（OCR）</h2>
+      <div class="form-grid">
+        <label>AI Model（讀內容）
+          <input id="set-model" class="input" autocomplete="off">
+        </label>
+        <label>Base URL
+          <input id="set-base-url" class="input" autocomplete="off">
+        </label>
+        <label class="span-2">API Key（讀內容）
+          <input id="set-api-key" class="input" type="password" autocomplete="off">
+        </label>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn success" id="btn-save-content">💾 儲存內容設定</button>
+        <button type="button" class="btn" id="btn-test-ai">🔍 測試內容 AI</button>
+      </div>
+      <div id="test-result-ai" class="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="security-note">
+        🔒 <b>私隱設計</b>：GitHub Token 同 API Key 只會存喺你自己瀏覽器嘅 localStorage，<b>永遠唔會寫入 repo</b>。
+        repo 入面嘅 <code>settings.json</code> 只係非敏感預設（owner / repo / model / base URL），key 欄位一律留空，
+        就算 repo 係 public 都唔會洩漏任何 key。
+      </div>
     </div>
   </section>
 </main>
@@ -192,7 +217,7 @@
     <div class="table-wrap">
       <table id="file-picker-table">
         <thead>
-          <tr><th>檔案</th><th>書名</th><th>作者</th><th>條目</th><th style="width:70px"></th></tr>
+          <tr><th style="width:24%">檔案</th><th style="width:30%">書名</th><th style="width:30%">作者</th><th style="width:16%">條目</th></tr>
         </thead>
         <tbody></tbody>
       </table>

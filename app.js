@@ -326,6 +326,8 @@ const pageImages = [];   // {id, url} 只喺記憶體，唔會儲存
 const results = [];      // {id, topic, content, chapter, page}
 let detailFile = null;
 let detailRows = [];     // {id, topic, content, chapter, page}
+let detailDirty = false; // 有未儲存修改（關閉此書時要確認）
+function markDetailDirty() { detailDirty = true; }
 let hoverZone = 'page';  // 貼上圖片時去邊度
 
 /* =========================================================
@@ -589,27 +591,31 @@ function renderFilePicker() {
   tbody.innerHTML = '';
   rows.forEach(e => {
     const tr = document.createElement('tr');
+    if (fFile || fTitle || fAuthor) tr.classList.add('filter-hit');   /* filter 匹配 highlight */
     const tdFile = document.createElement('td');
-    tdFile.textContent = String(e.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
+    const fileBtn = document.createElement('button');
+    fileBtn.className = 'btn-link';
+    fileBtn.textContent = String(e.file).replace(/^books\//, '');   /* 唔顯示 books/ 前綴 */
+    fileBtn.title = '撳入去揀選 ' + e.file;
+    fileBtn.onclick = () => pickExistingFile(e.file);
+    tdFile.appendChild(fileBtn);
     const tdTitle = document.createElement('td');
-    tdTitle.textContent = e.book_title || '—';
+    const titleBtn = document.createElement('button');
+    titleBtn.className = 'btn-link';
+    titleBtn.textContent = e.book_title || '—';
+    titleBtn.title = '撳入去揀選 ' + e.file;
+    titleBtn.onclick = () => pickExistingFile(e.file);
+    tdTitle.appendChild(titleBtn);
     const tdAuthor = document.createElement('td');
     tdAuthor.textContent = e.author || '—';
     const tdCount = document.createElement('td');
     tdCount.className = 'row-num';
     tdCount.textContent = e.count != null ? String(e.count) : '—';
-    const tdAct = document.createElement('td');
-    tdAct.className = 'open-cell';
-    const btn = document.createElement('button');
-    btn.className = 'btn small primary';
-    btn.textContent = '揀選';
-    btn.onclick = () => pickExistingFile(e.file);
-    tdAct.appendChild(btn);
-    tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
+    tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount);
     tbody.appendChild(tr);
   });
-  if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center">冇相符嘅書檔</td></tr>';
-  $('#fp-hint').textContent = '共 ' + rows.length + ' 本書檔（揀選後會設定為儲存目標，新內容 append 喺後面）';
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="4" class="hint" style="text-align:center">冇相符嘅書檔</td></tr>';
+  $('#fp-hint').textContent = '共 ' + rows.length + ' 本書檔（直接撳檔名 / 書名即可揀選，新內容 append 喺後面）';
 }
 
 async function pickExistingFile(file) {
@@ -719,6 +725,7 @@ async function refreshLibrary() {
   tbody.innerHTML = '';
   rows.forEach(b => {
     const tr = document.createElement('tr');
+    if (filter) tr.classList.add('filter-hit');   /* filter 匹配 highlight */
     const tdFile = document.createElement('td');
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
@@ -929,6 +936,8 @@ async function openBook(file) {
       const ka = pageSortKey(a.page), kb = pageSortKey(b.page);
       return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
     });
+    detailDirty = false;
+    $('#df-topic').value = ''; $('#df-chapter').value = ''; $('#df-content').value = '';
     $('#book-detail-title').textContent = `${book.book_title || '（無書名）'}${book.author ? ' — ' + book.author : ''} ・ ${file}`;
     $('#book-detail-card').classList.remove('hidden');
     renderDetailRows();
@@ -943,15 +952,25 @@ async function openBook(file) {
 function renderDetailRows() {
   const tbody = $('#book-detail-table tbody');
   tbody.innerHTML = '';
+  /* detail filter：topic / chapter / content */
+  const fTopic = $('#df-topic').value.trim().toLowerCase();
+  const fChap = $('#df-chapter').value.trim().toLowerCase();
+  const fCont = $('#df-content').value.trim().toLowerCase();
+  const hasFilter = !!(fTopic || fChap || fCont);
   detailRows.forEach((r, i) => {
+    const mT = !fTopic || (r.topic || '').toLowerCase().includes(fTopic);
+    const mC = !fChap || (r.chapter || '').toLowerCase().includes(fChap);
+    const mCo = !fCont || (r.content || '').toLowerCase().includes(fCont);
+    if (hasFilter && !(mT && mC && mCo)) return;   /* 唔匹配 → 隱藏 */
     const tr = document.createElement('tr');
+    if (hasFilter) tr.classList.add('filter-hit');   /* 匹配 highlight */
     const mk = (tag, key, ph) => {
       const td = document.createElement('td');
       const el = document.createElement(tag);
       el.value = r[key] || '';
       el.placeholder = ph || '';
       if (tag === 'textarea') el.classList.add('content-text');   /* 撳入去彈全屏編輯 */
-      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
+      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); markDetailDirty(); });
       td.appendChild(el);
       return td;
     };
@@ -966,19 +985,19 @@ function renderDetailRows() {
     tInput.placeholder = '主題';
     tInput.className = 'topic-input';
     tInput.rows = 1;
-    tInput.addEventListener('input', () => { r.topic = tInput.value; autosize(tInput); });
+    tInput.addEventListener('input', () => { r.topic = tInput.value; autosize(tInput); markDetailDirty(); });
     const mp = document.createElement('div');
     mp.className = 'meta-pair';
     const ch = document.createElement('input');
     ch.value = r.chapter || '';
     ch.placeholder = '章節';
     ch.className = 'meta-input';
-    ch.addEventListener('input', () => { r.chapter = ch.value; });
+    ch.addEventListener('input', () => { r.chapter = ch.value; markDetailDirty(); });
     const pg = document.createElement('input');
     pg.value = r.page || '';
     pg.placeholder = '頁碼';
     pg.className = 'meta-input';
-    pg.addEventListener('input', () => { r.page = pg.value; });
+    pg.addEventListener('input', () => { r.page = pg.value; markDetailDirty(); });
     mp.appendChild(ch);
     mp.appendChild(pg);
     tc.appendChild(tInput);
@@ -996,6 +1015,7 @@ function renderDetailRows() {
       if (!confirm('確定刪除呢行（未儲存）？')) return;
       const idx = detailRows.findIndex(x => x.id === r.id);
       if (idx >= 0) detailRows.splice(idx, 1);
+      markDetailDirty();
       renderDetailRows();
     };
     act.appendChild(del);
@@ -1016,6 +1036,7 @@ async function saveDetail() {
       .filter(r => (r.topic && r.topic.trim()) || (r.content && r.content.trim()))
       .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }));
     await writeFile(detailFile, JSON.stringify(book, null, 2), `Update book content in ${detailFile}`);
+    detailDirty = false;
     toast('已儲存 ' + detailFile + '（' + book.rows.length + ' 條）', 'success');
     refreshLibrary();
   } catch (e) {
@@ -1041,19 +1062,38 @@ function bindSettingsForm() {
   });
 }
 
-function saveSettings() {
+function saveGitSettings() {
   settings.github_owner = $('#set-owner').value.trim();
   settings.github_repo = $('#set-repo').value.trim();
   settings.github_branch = $('#set-branch').value.trim() || 'main';
   settings.github_token = $('#set-gh-token').value.trim();
-  settings.ai_model = $('#set-model').value.trim() || DEFAULT_SETTINGS.ai_model;
-  settings.base_url = $('#set-base-url').value.trim() || DEFAULT_SETTINGS.base_url;
-  settings.api_key = $('#set-api-key').value.trim();
+  saveLocalSettings();
+  const msg = 'Git 設定已儲存（只存喺本機瀏覽器 localStorage，唔會寫入 repo）';
+  $('#test-result-gh').textContent = msg;
+  $('#test-result-gh').className = 'status success';
+  toast(msg, 'success');
+  renderStatusCheck();
+}
+
+function saveTitleSettings() {
   settings.title_model = $('#set-title-model').value.trim() || DEFAULT_SETTINGS.title_model;
   settings.title_api_key = $('#set-title-api-key').value.trim();
   saveLocalSettings();
-  const msg = '設定已儲存（只存喺本機瀏覽器 localStorage，唔會寫入 repo）';
-  $('#settings-status').textContent = msg;
+  const msg = '認書名設定已儲存（唔填 API Key 就自動用「認書內容」嗰組）';
+  $('#test-result-title').textContent = msg;
+  $('#test-result-title').className = 'status success';
+  toast(msg, 'success');
+  renderStatusCheck();
+}
+
+function saveContentSettings() {
+  settings.ai_model = $('#set-model').value.trim() || DEFAULT_SETTINGS.ai_model;
+  settings.base_url = $('#set-base-url').value.trim() || DEFAULT_SETTINGS.base_url;
+  settings.api_key = $('#set-api-key').value.trim();
+  saveLocalSettings();
+  const msg = '認書內容設定已儲存';
+  $('#test-result-ai').textContent = msg;
+  $('#test-result-ai').className = 'status success';
   toast(msg, 'success');
   renderStatusCheck();
 }
@@ -1084,17 +1124,18 @@ function renderStatusCheck() {
   set('st-base-url', settings.base_url || '—', !!settings.base_url);
 }
 
-function setTestResult(text, type) {
-  const out = $('#test-result');
+function setTestResult(text, type, id) {
+  const out = $('#' + (id || 'test-result-ai'));
+  if (!out) return;
   out.textContent = text;
   out.className = 'status' + (type ? ' ' + type : '');
 }
 
-/* 測試 AI API：發一個極短請求驗證 key + 模型 + base URL */
+/* 測試 AI API（讀內容）：發一個極短請求驗證 key + 模型 + base URL */
 async function testAI() {
-  if (!settings.api_key) { setTestResult('❌ 未設定 API Key，請先喺上面填寫', 'error'); return; }
-  if (!settings.ai_model) { setTestResult('❌ 未設定 AI Model', 'error'); return; }
-  setTestResult('⏳ 測試中，請稍候...');
+  if (!settings.api_key) { setTestResult('❌ 未設定 API Key，請先喺「認書內容設定」填寫', 'error', 'test-result-ai'); return; }
+  if (!settings.ai_model) { setTestResult('❌ 未設定 AI Model', 'error', 'test-result-ai'); return; }
+  setTestResult('⏳ 測試中，請稍候...', '', 'test-result-ai');
   setBusy(true);
   try {
     const url = settings.base_url.replace(/\/+$/, '') + '/chat/completions';
@@ -1115,9 +1156,44 @@ async function testAI() {
     }
     const data = await res.json();
     const reply = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-    setTestResult('✅ API Key 有效！模型「' + settings.ai_model + '」回應：' + (reply.trim() ? reply.trim() : '(空)'), 'success');
+    setTestResult('✅ API Key 有效！模型「' + settings.ai_model + '」回應：' + (reply.trim() ? reply.trim() : '(空)'), 'success', 'test-result-ai');
   } catch (e) {
-    setTestResult('❌ AI 測試失敗：' + e.message, 'error');
+    setTestResult('❌ AI 測試失敗：' + e.message, 'error', 'test-result-ai');
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* 測試書名 AI（認書名）：用書名專用 key/model（未設則 fallback 一般） */
+async function testTitleAI() {
+  const k = settings.title_api_key || settings.api_key;
+  const m = settings.title_model || settings.ai_model;
+  if (!k) { setTestResult('❌ 未設定 API Key（書名專用或一般都得）', 'error', 'test-result-title'); return; }
+  if (!m) { setTestResult('❌ 未設定 AI Model', 'error', 'test-result-title'); return; }
+  setTestResult('⏳ 測試中（用「' + m + '」），請稍候...', '', 'test-result-title');
+  setBusy(true);
+  try {
+    const url = settings.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + k,
+        'HTTP-Referer': 'https://github.com/' + settings.github_owner + '/' + settings.github_repo,
+        'X-Title': 'OCR eBooks'
+      },
+      body: JSON.stringify({ model: m, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 })
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const e = await res.json(); msg = (e.error && (e.error.message || JSON.stringify(e.error))) || msg; } catch (e) { /* ignore */ }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const reply = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    setTestResult('✅ 書名 AI 有效！模型「' + m + '」回應：' + (reply.trim() ? reply.trim() : '(空)'), 'success', 'test-result-title');
+  } catch (e) {
+    setTestResult('❌ 書名 AI 測試失敗：' + e.message, 'error', 'test-result-title');
   } finally {
     setBusy(false);
   }
@@ -1125,21 +1201,21 @@ async function testAI() {
 
 /* 測試 GitHub：驗證 token 有效 + repo 可訪問 */
 async function testGitHub() {
-  if (!settings.github_token) { setTestResult('❌ 未設定 GitHub Token', 'error'); return; }
-  if (!settings.github_owner || !settings.github_repo) { setTestResult('❌ 未設定 GitHub Owner / Repo', 'error'); return; }
-  setTestResult('⏳ 測試中，請稍候...');
+  if (!settings.github_token) { setTestResult('❌ 未設定 GitHub Token', 'error', 'test-result-gh'); return; }
+  if (!settings.github_owner || !settings.github_repo) { setTestResult('❌ 未設定 GitHub Owner / Repo', 'error', 'test-result-gh'); return; }
+  setTestResult('⏳ 測試中，請稍候...', '', 'test-result-gh');
   setBusy(true);
   try {
     const repo = await gh(repoBase());
     const listing = await gh(repoBase() + '/contents/?ref=' + encodeURIComponent(settings.github_branch));
     const n = Array.isArray(listing) ? listing.length : 0;
-    setTestResult('✅ GitHub Token 有效，repo「' + settings.github_owner + '/' + settings.github_repo + '」可訪問（' + (repo.default_branch ? 'default branch: ' + repo.default_branch + '，' : '') + '根目錄 ' + n + ' 個項目）', 'success');
+    setTestResult('✅ GitHub Token 有效，repo「' + settings.github_owner + '/' + settings.github_repo + '」可訪問（' + (repo.default_branch ? 'default branch: ' + repo.default_branch + '，' : '') + '根目錄 ' + n + ' 個項目）', 'success', 'test-result-gh');
   } catch (e) {
     let hint = '';
     if (e.status === 401 || String(e.message).includes('Bad credentials')) hint = '（Token 無效或已過期）';
     else if (e.status === 403) hint = '（權限不足，需要 Contents 讀寫權限）';
     else if (e.status === 404) hint = '（repo 唔存在，或 token 睇唔到佢）';
-    setTestResult('❌ GitHub 測試失敗：' + e.message + hint, 'error');
+    setTestResult('❌ GitHub 測試失敗：' + e.message + hint, 'error', 'test-result-gh');
   } finally {
     setBusy(false);
   }
@@ -1246,10 +1322,15 @@ function bindEvents() {
   $('#lib-filter').addEventListener('input', refreshLibrary);
   $('#btn-detail-save').addEventListener('click', saveDetail);
   $('#btn-detail-back').addEventListener('click', () => {
+    if (detailDirty && !confirm('有未儲存嘅修改，確定捨棄？')) return;
     $('#book-detail-card').classList.add('hidden');
     detailFile = null;
+    detailDirty = false;
     refreshLibrary();
     window.scrollTo({ top: 0 });
+  });
+  ['df-topic', 'df-chapter', 'df-content'].forEach(id => {
+    $('#' + id).addEventListener('input', renderDetailRows);
   });
 
   /* 書庫：編輯書名 / 作者 popup */
@@ -1280,8 +1361,11 @@ function bindEvents() {
   });
 
   /* 設定 */
-  $('#btn-save-settings').addEventListener('click', saveSettings);
+  $('#btn-save-git').addEventListener('click', saveGitSettings);
+  $('#btn-save-title').addEventListener('click', saveTitleSettings);
+  $('#btn-save-content').addEventListener('click', saveContentSettings);
   $('#btn-test-ai').addEventListener('click', testAI);
+  $('#btn-test-title-ai').addEventListener('click', testTitleAI);
   $('#btn-test-gh').addEventListener('click', testGitHub);
 }
 
