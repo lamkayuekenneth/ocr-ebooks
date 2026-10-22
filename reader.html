@@ -57,21 +57,32 @@ header {
 }
 .arrow { padding: 6px 9px; font-size: 13px; }
 .focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-/* Focus：專注一句——目標句玻璃擬態（半透明白面板 + 光邊），其餘文字淺灰 */
-body.focus-mode .content, body.focus-mode .topic { color: rgba(61, 51, 38, .55); }
+/* Focus：專注一句——目標句玻璃面板（半透明白 + 光邊 + 陰影，唔會 blur 其他字），其他字保持正常色 */
 body.focus-mode #focus-sentence {
   color: #111;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .85), rgba(255, 255, 255, .45));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 255, 255, .55));
   border: 1px solid rgba(255, 255, 255, .95);
   border-radius: 8px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, .16), inset 0 1px 3px rgba(255, 255, 255, 1);
-  -webkit-backdrop-filter: blur(4px);
-          backdrop-filter: blur(4px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .14), inset 0 1px 3px rgba(255, 255, 255, 1);
   padding: 1px 4px;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
-body.focus-mode .chapter-tag { opacity: .3; }
+/* 浮動句子導航（畫面右邊中間，半透明） */
+.focus-floating {
+  position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
+  z-index: 30; display: none; flex-direction: column; gap: 10px;
+  opacity: .55;
+}
+body.focus-mode .focus-floating { display: flex; }
+.focus-floating .btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255, 255, 255, .65);
+  border: 1px solid rgba(0, 0, 0, .18);
+  color: var(--ink, #3d3326);
+  font-size: 15px; padding: 0; line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+}
 /* 遮罩高過 main，但低過 chapters / header（保持導航可用） */
 .chapters { z-index: 10; }
 .chapters {
@@ -144,7 +155,7 @@ footer {
     <div class="ctl">
       <button class="btn arrow" id="btn-focus-prev" title="上一句（↑）">▲</button>
       <button class="btn arrow" id="btn-focus-next" title="下一句（↓）">▼</button>
-      <button class="btn focus-btn" id="btn-focus" title="專注模式：突出當前句，其餘文字減淡">專注</button>
+      <button class="btn focus-btn" id="btn-focus" title="專注模式：突出當前句">專注</button>
       <button class="btn" id="font-down" title="縮細字體">A−</button>
       <span id="font-pct">100%</span>
       <button class="btn" id="font-up" title="放大字體">A+</button>
@@ -162,6 +173,12 @@ footer {
 </header>
 
 <div class="chapters" id="chapters"></div>
+
+<!-- 浮動句子導航（畫面右邊中間） -->
+<div class="focus-floating" id="focus-floating">
+  <button class="btn" id="float-focus-prev" title="上一句">▲</button>
+  <button class="btn" id="float-focus-next" title="下一句">▼</button>
+</div>
 
 <main id="book"></main>
 <footer>OCR eBooks 閱讀器 · 字體縮放會自動記低</footer>
@@ -491,14 +508,11 @@ footer {
     setTimeout(() => { focusNavLock = false; }, 600);
   }
 
-  let focusScrollTick = false;
+  let focusScrollTimer = null;
   function onFocusScroll() {
-    if (focusScrollTick) return;
-    focusScrollTick = true;
-    requestAnimationFrame(() => {
-      focusScrollTick = false;
-      if (!focusNavLock) updateFocusLine();   /* 導航 smooth scroll 期間唔重置 focusIdx */
-    });
+    if (focusNavLock) return;              /* 導航 smooth scroll 期間唔理 */
+    clearTimeout(focusScrollTimer);
+    focusScrollTimer = setTimeout(() => { updateFocusLine(); }, 300);   /* scroll 停低 300ms 先順住換句 */
   }
 
   function setFocusMode(on) {
@@ -525,6 +539,8 @@ footer {
   $('#btn-focus').addEventListener('click', () => setFocusMode(!focusMode));
   $('#btn-focus-prev').addEventListener('click', () => focusMove(-1));
   $('#btn-focus-next').addEventListener('click', () => focusMove(1));
+  $('#float-focus-prev').addEventListener('click', () => focusMove(-1));
+  $('#float-focus-next').addEventListener('click', () => focusMove(1));
   $('#close').addEventListener('click', () => window.close());
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { if (window.opener) { window.close(); } return; }
