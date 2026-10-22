@@ -555,6 +555,23 @@ footer {
     return -1;
   }
 
+  /* 慢速平滑捲動（自己控制節奏，逐步移向目標） */
+  let slowScrollRaf = null;
+  function slowScrollTo(target, duration) {
+    const start = window.scrollY;
+    const delta = target - start;
+    const t0 = performance.now();
+    if (slowScrollRaf) cancelAnimationFrame(slowScrollRaf);
+    function step(now) {
+      const p = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);      /* easeOutCubic：慢起快收，尾段順滑 */
+      window.scrollTo(0, start + delta * eased);
+      if (p < 1) slowScrollRaf = requestAnimationFrame(step);
+      else slowScrollRaf = null;
+    }
+    slowScrollRaf = requestAnimationFrame(step);
+  }
+
   $('#book').addEventListener('click', e => {
     if (!focusMode) return;
     const i = sentenceAtPoint(e.clientX, e.clientY);
@@ -563,8 +580,8 @@ footer {
     applyFocusSentence();
     const target = sentences[focusIdx].top - window.innerHeight * 0.42;
     focusNavLock = true;
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    setTimeout(() => { focusNavLock = false; }, 600);
+    slowScrollTo(Math.max(0, target), 900);      /* 慢速移過去 */
+    setTimeout(() => { focusNavLock = false; }, 1200);
   });
 
   $('#btn-focus').addEventListener('click', () => setFocusMode(!focusMode));
