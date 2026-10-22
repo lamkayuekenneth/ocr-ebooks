@@ -57,10 +57,10 @@ header {
 }
 .arrow { padding: 6px 9px; font-size: 13px; }
 .focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-/* Focus：專注一句——目標句原色，其餘文字幾乎隱形（color 淡化，排版唔郁） */
-body.focus-mode .content, body.focus-mode .topic { color: rgba(60, 45, 30, .08); }
-body.focus-mode #focus-sentence { color: #000; }
-body.focus-mode .chapter-tag { opacity: .15; }
+/* Focus：專注一句——目標句黑字 + 黃底 highlight，其餘文字淺灰（淺少少，仲可讀） */
+body.focus-mode .content, body.focus-mode .topic { color: rgba(61, 51, 38, .55); }
+body.focus-mode #focus-sentence { color: #000; background: var(--mark); border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+body.focus-mode .chapter-tag { opacity: .3; }
 /* 遮罩高過 main，但低過 chapters / header（保持導航可用） */
 .chapters { z-index: 10; }
 .chapters {
