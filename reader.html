@@ -58,6 +58,8 @@ header {
 .arrow { padding: 6px 9px; font-size: 13px; }
 .focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 /* Focus：專注一句——目標句玻璃面板（半透明白 + 光邊 + 陰影，唔會 blur 其他字），其他字保持正常色 */
+#btn-focus-prev, #btn-focus-next { display: none; }
+body.focus-mode #btn-focus-prev, body.focus-mode #btn-focus-next { display: inline-block; }
 body.focus-mode #focus-sentence {
   color: #111;
   background: linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 255, 255, .55));
