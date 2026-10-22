@@ -56,6 +56,24 @@ header {
   align-self: center; line-height: 1;
 }
 .arrow { padding: 6px 9px; font-size: 13px; }
+.focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* Focus line 遮罩：其他文字減淡，當前閱讀行開一條透明窗口 */
+#focus-dim {
+  position: fixed; inset: 0; z-index: 5; pointer-events: none;
+  background: rgba(250, 247, 240, .86);
+  -webkit-mask-image: linear-gradient(to bottom,
+      black 0, black var(--fw-top, 0px),
+      transparent var(--fw-top, 0px), transparent var(--fw-bottom, 0px),
+      black var(--fw-bottom, 0px), black 100%);
+          mask-image: linear-gradient(to bottom,
+      black 0, black var(--fw-top, 0px),
+      transparent var(--fw-top, 0px), transparent var(--fw-bottom, 0px),
+      black var(--fw-bottom, 0px), black 100%);
+  display: none;
+}
+body.focus-mode #focus-dim { display: block; }
+/* 遮罩高過 main，但低過 chapters / header（保持導航可用） */
+.chapters { z-index: 10; }
 .chapters {
   position: sticky; z-index: 15;          /* top 由 JS 按 header 實際高度設定，desktop/mobile 都浮頂 */
   background: var(--paper); border-bottom: 1px solid var(--line);
@@ -124,6 +142,7 @@ footer {
   <div class="row1">
     <div class="book-title" id="book-title">⋯</div>
     <div class="ctl">
+      <button class="btn focus-btn" id="btn-focus" title="專注模式：突出當前閱讀行，其餘文字減淡，自動向下推進">專注</button>
       <button class="btn" id="font-down" title="縮細字體">A−</button>
       <span id="font-pct">100%</span>
       <button class="btn" id="font-up" title="放大字體">A+</button>
@@ -144,6 +163,9 @@ footer {
 
 <main id="book"></main>
 <footer>OCR eBooks 閱讀器 · 字體縮放會自動記低</footer>
+
+<!-- Focus line：半透明遮罩，只喺當前行開窗（Chrome Reader Mode 專注閱讀風格） -->
+<div id="focus-dim"></div>
 
 <script>
 (function () {
@@ -355,6 +377,91 @@ footer {
   window.addEventListener('resize', fixChaptersTop);
   $('#font-up').addEventListener('click', () => { fontScale += 0.1; applyFont(); });
   $('#font-down').addEventListener('click', () => { fontScale -= 0.1; applyFont(); });
+
+  /* =========================================================
+   * Focus line（Chrome Reader Mode 專注閱讀風格）
+   * ========================================================= */
+  const dim = $('#focus-dim');
+  let focusMode = false, focusLines = [], focusLastUser = 0, focusTimer = null, autoScrolling = false;
+
+  function collectLines() {
+    focusLines = [];
+    const walker = document.createTreeWalker($('#book'), NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      if (!n.data.trim()) continue;
+      const pe = n.parentElement;
+      if (pe && pe.closest('mark, .chapter-tag')) continue;   /* 標籤唔算閱讀行 */
+      const r = document.createRange();
+      r.selectNodeContents(n);
+      for (const rc of r.getClientRects()) {
+        if (rc.width < 1 || rc.height < 1) continue;
+        focusLines.push({ top: rc.top + window.scrollY, bottom: rc.bottom + window.scrollY });
+      }
+    }
+    focusLines.sort((a, b) => a.top - b.top);
+  }
+
+  function lineIndexAtCenter() {
+    const center = window.scrollY + window.innerHeight * 0.42;
+    for (let i = 0; i < focusLines.length; i++) {
+      if (center >= focusLines[i].top && center <= focusLines[i].bottom) return i;
+    }
+    let best = 0, bd = Infinity;
+    focusLines.forEach((l, i) => {
+      const d = Math.abs((l.top + l.bottom) / 2 - center);
+      if (d < bd) { bd = d; best = i; }
+    });
+    return best;
+  }
+
+  function updateFocusLine() {
+    if (!focusLines.length) return;
+    const i = lineIndexAtCenter();
+    const line = focusLines[i];
+    const y0 = Math.max(0, line.top - window.scrollY - 2);
+    const h = line.bottom - line.top + 4;
+    dim.style.setProperty('--fw-top', y0 + 'px');
+    dim.style.setProperty('--fw-bottom', (y0 + h) + 'px');
+  }
+
+  function advanceFocus() {
+    if (!focusLines.length) return;
+    const i = lineIndexAtCenter();
+    const next = focusLines[Math.min(i + 1, focusLines.length - 1)];
+    const target = (next.top + next.bottom) / 2 - window.innerHeight * 0.42;
+    autoScrolling = true;
+    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    setTimeout(() => { autoScrolling = false; }, 700);
+  }
+
+  function onFocusScroll() {
+    if (autoScrolling) { updateFocusLine(); return; }
+    focusLastUser = Date.now();
+    updateFocusLine();
+  }
+
+  function setFocusMode(on) {
+    focusMode = on;
+    document.body.classList.toggle('focus-mode', on);
+    $('#btn-focus').classList.toggle('active', on);
+    if (on) {
+      collectLines();
+      updateFocusLine();
+      focusLastUser = Date.now();
+      window.addEventListener('scroll', onFocusScroll, { passive: true });
+      window.addEventListener('resize', () => { collectLines(); updateFocusLine(); });
+      focusTimer = setInterval(() => {
+        if (!focusMode) return;
+        if (Date.now() - focusLastUser > 3500) advanceFocus();   /* 冇郁 3.5s → 自動推進下一行 */
+      }, 1000);
+    } else {
+      clearInterval(focusTimer); focusTimer = null;
+      window.removeEventListener('scroll', onFocusScroll);
+    }
+  }
+
+  $('#btn-focus').addEventListener('click', () => setFocusMode(!focusMode));
   $('#close').addEventListener('click', () => window.close());
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { if (window.opener) { window.close(); } return; }
