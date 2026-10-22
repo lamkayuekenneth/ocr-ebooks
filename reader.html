@@ -481,6 +481,7 @@ footer {
     collectSentences();                                  /* 重新掃描（unwrap 後 DOM 乾淨，node 引用新鮮） */
     focusIdx = Math.min(focusIdx, sentences.length - 1);
     if (!sentences.length) return;
+    updateFocusButtons();
     const s = sentences[focusIdx];
     const r = document.createRange();
     r.setStart(s.node, s.s);
@@ -496,16 +497,31 @@ footer {
     applyFocusSentence();
   }
 
-  /* 上／下一句導航（按鈕 ▲▼ 或鍵盤 ↑↓） */
+  /* 上／下一句導航（按鈕 ▲▼ 或鍵盤 ↑↓）——同點擊一樣用 900ms 慢速動畫，鎖定全程防止 scroll 重置 focus 句 */
   let focusNavLock = false;
+  function updateFocusButtons() {
+    const atStart = focusIdx <= 0, atEnd = focusIdx >= sentences.length - 1;
+    $('#btn-focus-prev').disabled = atStart;
+    $('#btn-focus-next').disabled = atEnd;
+    $('#float-focus-prev').disabled = atStart;
+    $('#float-focus-next').disabled = atEnd;
+  }
+  /* 目標 scroll 位置：句子中心對齊視口 0.42（短句都唔會俾中心句計走） */
+  function sentenceCenterTarget(i) {
+    const s = sentences[i];
+    return (s.top + s.bottom) / 2 - window.innerHeight * 0.42;
+  }
   function focusMove(d) {
     if (!focusMode || !sentences.length) return;
     focusIdx = Math.min(sentences.length - 1, Math.max(0, focusIdx + d));
     applyFocusSentence();
-    const target = sentences[focusIdx].top - window.innerHeight * 0.42;
-    focusNavLock = true;
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    setTimeout(() => { focusNavLock = false; }, 600);
+    updateFocusButtons();
+    const target = sentenceCenterTarget(focusIdx);
+    if (Math.abs(target - window.scrollY) > 1) {      /* 需要 scroll 先用 900ms 慢速動畫 */
+      focusNavLock = true;
+      slowScrollTo(Math.max(0, target), 900);
+      setTimeout(() => { focusNavLock = false; }, 1200);
+    }
   }
 
   let focusScrollTimer = null;
@@ -555,19 +571,21 @@ footer {
     return -1;
   }
 
-  /* 慢速平滑捲動（自己控制節奏，逐步移向目標） */
+  /* 慢速平滑捲動（自己控制節奏，逐步移向目標；新動畫會完全取代舊動畫，舊動畫唔會再郁 scroll） */
   let slowScrollRaf = null;
+  let slowScrollGen = 0;
   function slowScrollTo(target, duration) {
+    const gen = ++slowScrollGen;
     const start = window.scrollY;
     const delta = target - start;
     const t0 = performance.now();
-    if (slowScrollRaf) cancelAnimationFrame(slowScrollRaf);
     function step(now) {
+      if (gen !== slowScrollGen) return;                /* 已被新動畫取代——唔再郁 scroll */
       const p = Math.min(1, (now - t0) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);      /* easeOutCubic：慢起快收，尾段順滑 */
+      const eased = 1 - Math.pow(1 - p, 3);             /* easeOutCubic：慢起快收，尾段順滑 */
       window.scrollTo(0, start + delta * eased);
       if (p < 1) slowScrollRaf = requestAnimationFrame(step);
-      else slowScrollRaf = null;
+      else slowScrollRaf = null;                       /* 完成：scroll 已到位，focus 句唔需要再跟中心（防止最後一幀位置未同步而揀錯句） */
     }
     slowScrollRaf = requestAnimationFrame(step);
   }
@@ -578,12 +596,11 @@ footer {
     if (i < 0) return;
     focusIdx = i;
     applyFocusSentence();
-    const target = sentences[focusIdx].top - window.innerHeight * 0.42;
+    const target = sentenceCenterTarget(focusIdx);
     focusNavLock = true;
     slowScrollTo(Math.max(0, target), 900);      /* 慢速移過去 */
     setTimeout(() => { focusNavLock = false; }, 1200);
   });
-
   $('#btn-focus').addEventListener('click', () => setFocusMode(!focusMode));
   $('#btn-focus-prev').addEventListener('click', () => focusMove(-1));
   $('#btn-focus-next').addEventListener('click', () => focusMove(1));
