@@ -57,21 +57,10 @@ header {
 }
 .arrow { padding: 6px 9px; font-size: 13px; }
 .focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-/* Focus line 遮罩：其他文字減淡，當前閱讀行開一條透明窗口 */
-#focus-dim {
-  position: fixed; inset: 0; z-index: 5; pointer-events: none;
-  background: rgba(250, 247, 240, .86);
-  -webkit-mask-image: linear-gradient(to bottom,
-      black 0, black var(--fw-top, 0px),
-      transparent var(--fw-top, 0px), transparent var(--fw-bottom, 0px),
-      black var(--fw-bottom, 0px), black 100%);
-          mask-image: linear-gradient(to bottom,
-      black 0, black var(--fw-top, 0px),
-      transparent var(--fw-top, 0px), transparent var(--fw-bottom, 0px),
-      black var(--fw-bottom, 0px), black 100%);
-  display: none;
-}
-body.focus-mode #focus-dim { display: block; }
+/* Focus：專注一句——目標句原色，其餘文字幾乎隱形（color 淡化，排版唔郁） */
+body.focus-mode .content, body.focus-mode .topic { color: rgba(60, 45, 30, .08); }
+body.focus-mode #focus-sentence { color: #000; }
+body.focus-mode .chapter-tag { opacity: .15; }
 /* 遮罩高過 main，但低過 chapters / header（保持導航可用） */
 .chapters { z-index: 10; }
 .chapters {
@@ -164,8 +153,7 @@ footer {
 <main id="book"></main>
 <footer>OCR eBooks 閱讀器 · 字體縮放會自動記低</footer>
 
-<!-- Focus line：半透明遮罩，只喺當前行開窗（Chrome Reader Mode 專注閱讀風格） -->
-<div id="focus-dim"></div>
+<!-- Focus：目標句用 span 標記（其餘文字 color 淡化，唔需要遮罩層） -->
 
 <script>
 (function () {
@@ -381,8 +369,8 @@ footer {
   /* =========================================================
    * Focus line（Chrome Reader Mode 專注閱讀風格）
    * ========================================================= */
-  const dim = $('#focus-dim');
-  let focusMode = false, sentences = [], focusIdx = 0, focusLastUser = 0, focusTimer = null, autoScrolling = false;
+  const dim = null;
+  let focusMode = false, sentences = [], focusIdx = 0;
 
   /* 句尾判斷：中英句尾標點都處理；英文 '.' 避開數字（3.14、Mr. 唔誤斷） */
   function isSentEnd(text, i) {
@@ -408,6 +396,7 @@ footer {
     }
     if (!first || !last) return;
     sentences.push({
+      range: r,                       /* live Range：scroll 時重攞 rects */
       top: first.top + window.scrollY,
       bottom: last.bottom + window.scrollY,
       text: node.data.slice(s, e).trim().slice(0, 30)
@@ -450,33 +439,33 @@ footer {
     return best;
   }
 
-  function updateFocusLine(keepIdx) {
-    if (!sentences.length) return;
-    if (!keepIdx) focusIdx = sentenceIndexAtCenter();   /* 用戶郁動時先同步當前句；自動推進時保持 */
+  /* 目標句用 <span id="focus-sentence"> 包起（surroundContents：範圍淨係一個 text node，一定成功） */
+  function applyFocusSentence() {
+    const old = $('#focus-sentence');
+    if (old) {
+      const p = old.parentNode;
+      while (old.firstChild) p.insertBefore(old.firstChild, old);
+      p.removeChild(old);
+      p.normalize();
+    }
+    if (!sentences.length || !focusMode) return;
     const s = sentences[focusIdx];
-    /* 窗口 cover 一整句（由句首到句尾，可以跨多行） */
-    const y0 = Math.max(0, s.top - window.scrollY - 2);
-    const y1 = s.bottom - window.scrollY + 2;
-    dim.style.setProperty('--fw-top', y0 + 'px');
-    dim.style.setProperty('--fw-bottom', y1 + 'px');
+    const span = document.createElement('span');
+    span.id = 'focus-sentence';
+    try { s.range.surroundContents(span); } catch (e) { /* 唔好打斷渲染 */ }
   }
 
-  function advanceFocus() {
+  function updateFocusLine() {
     if (!sentences.length) return;
-    /* 直接推進到下一句（唔靠 scroll 結果，避免差 1px 死循環） */
-    focusIdx = Math.min(focusIdx + 1, sentences.length - 1);
-    const next = sentences[focusIdx];
-    const target = next.top - window.innerHeight * 0.42;   /* 下一句句首對準視線中心 */
-    autoScrolling = true;
-    focusLastUser = Date.now();   /* 推進後重置計時，避免 interval 連續觸發打斷 smooth scroll */
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    setTimeout(() => { autoScrolling = false; }, 700);
+    focusIdx = sentenceIndexAtCenter();   /* 中心句 → 全書只有呢句清晰 */
+    applyFocusSentence();
   }
 
+  let focusScrollTick = false;
   function onFocusScroll() {
-    if (autoScrolling) { updateFocusLine(true); return; }   /* 自動推進期間：窗口跟住，但唔重置 focusIdx */
-    focusLastUser = Date.now();
-    updateFocusLine(false);
+    if (focusScrollTick) return;
+    focusScrollTick = true;
+    requestAnimationFrame(() => { focusScrollTick = false; updateFocusLine(); });
   }
 
   function setFocusMode(on) {
@@ -485,16 +474,17 @@ footer {
     $('#btn-focus').classList.toggle('active', on);
     if (on) {
       collectSentences();
-      updateFocusLine(false);
-      focusLastUser = Date.now();
+      updateFocusLine();
       window.addEventListener('scroll', onFocusScroll, { passive: true });
-      window.addEventListener('resize', () => { collectSentences(); updateFocusLine(false); });
-      focusTimer = setInterval(() => {
-        if (!focusMode) return;
-        if (Date.now() - focusLastUser > 3500) advanceFocus();   /* 冇郁 3.5s → 自動推進下一句 */
-      }, 1000);
+      window.addEventListener('resize', () => { collectSentences(); updateFocusLine(); });
     } else {
-      clearInterval(focusTimer); focusTimer = null;
+      const old = $('#focus-sentence');
+      if (old) {
+        const p = old.parentNode;
+        while (old.firstChild) p.insertBefore(old.firstChild, old);
+        p.removeChild(old);
+        p.normalize();
+      }
       window.removeEventListener('scroll', onFocusScroll);
     }
   }
