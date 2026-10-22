@@ -25,6 +25,12 @@
       "content": "Python has undergone significant evolution since its creation. The most notable transition was from Python 2 to Python 3, with Python 3.0 released in 2008. This major version change introduced backward-incompatible changes to correct fundamental design flaws in the language.\n\nAs of 2025, Python 2 has been officially deprecated (support ended on January 1, 2020), and Python 3 is the standard. Key differences between Python 2 and 3 include:\n\n• Print Statement vs. Function: Python 2 used print as a statement (print \"Hello\"), while Python 3 uses it as a function (print(\"Hello\")).\n\n• Integer Division: In Python 2, 5 / 2 returns 2 (integer division), whereas in Python 3, it returns 2.5 (floating-point division).\n\n• Unicode Support: Python 3 has improved Unicode support, with strings being Unicode by default.\n\n• Iterator Behavior: Many functions that returned lists in Python 2 return iterators in Python 3 for better memory efficiency.\n\nPython's versioning follows a pattern of major.minor.micro (e.g., 3.11.2), with new minor versions released roughly annually, adding new features while maintaining backward compatibility within the major version.",
       "chapter": "",
       "page": "11"
+    },
+    {
+      "topic": "1.5 Setting Up Your Python Environment",
+      "content": "To begin programming in Python, you'll need to set up a development environment. Here's a step-by-step guide:\n\nInstalling Python\n\n1. Download Python: Visit the official Python website (python.org) and download the latest stable version for your operating system.\n\n2. Run the Installer: During installation, ensure you check the option \"Add Python to PATH\" to make Python accessible from the command line.\n\n3. Verify Installation: Open a terminal or command prompt and type python --version to confirm that Python is installed correctly.\n\nWorking with Python\n\nThere are several ways to write and run Python code:\n\nInteractive Mode (REPL): Python's Read-Evaluate-Print Loop allows you to execute code line by line. Access it by typing python in your terminal.\n\n$ python\n\nPython 3.11.2 (main, Mar 13 2023, 12:18:29) [GCC 12.2.0] on linux\n\nType \"help\", \"copyright\", \"credits\" or \"license\" for more information.>>> print(\"Hello, World!\")\n\nHello, World!>>>\n\nScript Mode: Create .py files containing your code and execute them with the Python interpreter:",
+      "chapter": "",
+      "page": "11"
     }
   ]
 }
