@@ -382,65 +382,101 @@ footer {
    * Focus line（Chrome Reader Mode 專注閱讀風格）
    * ========================================================= */
   const dim = $('#focus-dim');
-  let focusMode = false, focusLines = [], focusLastUser = 0, focusTimer = null, autoScrolling = false;
+  let focusMode = false, sentences = [], focusIdx = 0, focusLastUser = 0, focusTimer = null, autoScrolling = false;
 
-  function collectLines() {
-    focusLines = [];
+  /* 句尾判斷：中英句尾標點都處理；英文 '.' 避開數字（3.14、Mr. 唔誤斷） */
+  function isSentEnd(text, i) {
+    const ch = text[i];
+    if ('。！？…；'.includes(ch)) return true;
+    if (ch === '!' || ch === '?') return true;
+    if (ch === '.') {
+      const nx = text[i + 1] || '';
+      if (/\d/.test(nx) || /[A-Za-z]/.test(nx)) return false;   /* 3.14 / Mr. / www. */
+      return true;                                              /* 空格／結尾 → 英文句尾 */
+    }
+    return false;
+  }
+
+  function addSentence(node, s, e) {
+    const r = document.createRange();
+    r.setStart(node, s); r.setEnd(node, e);
+    let first = null, last = null;
+    for (const rc of r.getClientRects()) {
+      if (rc.width < 1 || rc.height < 1) continue;
+      if (!first) first = rc;
+      last = rc;
+    }
+    if (!first || !last) return;
+    sentences.push({
+      top: first.top + window.scrollY,
+      bottom: last.bottom + window.scrollY,
+      text: node.data.slice(s, e).trim().slice(0, 30)
+    });
+  }
+
+  /* 逐字符拆句：每個 text node 內按句尾標點切成一整句一整句 */
+  function collectSentences() {
+    sentences = [];
     const walker = document.createTreeWalker($('#book'), NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const n = walker.currentNode;
       if (!n.data.trim()) continue;
       const pe = n.parentElement;
-      if (pe && pe.closest('mark, .chapter-tag')) continue;   /* 標籤唔算閱讀行 */
-      const r = document.createRange();
-      r.selectNodeContents(n);
-      for (const rc of r.getClientRects()) {
-        if (rc.width < 1 || rc.height < 1) continue;
-        focusLines.push({ top: rc.top + window.scrollY, bottom: rc.bottom + window.scrollY });
+      if (pe && pe.closest('.chapter-tag')) continue;   /* 章節標籤唔算閱讀行 */
+      const text = n.data;
+      let s = 0;
+      for (let i = 0; i < text.length; i++) {
+        if (isSentEnd(text, i)) {
+          addSentence(n, s, i + 1);
+          s = i + 1;
+          while (s < text.length && /\s/.test(text[s])) s++;   /* 跳過句尾後嘅 \n 空白，唔好黐住上一行 */
+        }
       }
+      if (s < text.length) addSentence(n, s, text.length);
     }
-    focusLines.sort((a, b) => a.top - b.top);
   }
 
-  function lineIndexAtCenter() {
+  function sentenceIndexAtCenter() {
     const center = window.scrollY + window.innerHeight * 0.42;
-    for (let i = 0; i < focusLines.length; i++) {
-      if (center >= focusLines[i].top && center <= focusLines[i].bottom) return i;
+    for (let i = 0; i < sentences.length; i++) {
+      const s = sentences[i];
+      if (center >= s.top && center <= s.bottom) return i;
     }
     let best = 0, bd = Infinity;
-    focusLines.forEach((l, i) => {
-      const d = Math.abs((l.top + l.bottom) / 2 - center);
+    sentences.forEach((s, i) => {
+      const d = Math.abs((s.top + s.bottom) / 2 - center);
       if (d < bd) { bd = d; best = i; }
     });
     return best;
   }
 
-  function updateFocusLine() {
-    if (!focusLines.length) return;
-    const i = lineIndexAtCenter();
-    /* 窗口 cover 3 行（當前行 + 之後兩行），視線集中三行 */
-    const start = i;
-    const end = Math.min(focusLines.length - 1, start + 2);
-    const y0 = Math.max(0, focusLines[start].top - window.scrollY - 2);
-    const y1 = focusLines[end].bottom - window.scrollY + 2;
+  function updateFocusLine(keepIdx) {
+    if (!sentences.length) return;
+    if (!keepIdx) focusIdx = sentenceIndexAtCenter();   /* 用戶郁動時先同步當前句；自動推進時保持 */
+    const s = sentences[focusIdx];
+    /* 窗口 cover 一整句（由句首到句尾，可以跨多行） */
+    const y0 = Math.max(0, s.top - window.scrollY - 2);
+    const y1 = s.bottom - window.scrollY + 2;
     dim.style.setProperty('--fw-top', y0 + 'px');
     dim.style.setProperty('--fw-bottom', y1 + 'px');
   }
 
   function advanceFocus() {
-    if (!focusLines.length) return;
-    const i = lineIndexAtCenter();
-    const next = focusLines[Math.min(i + 1, focusLines.length - 1)];
-    const target = (next.top + next.bottom) / 2 - window.innerHeight * 0.42;
+    if (!sentences.length) return;
+    /* 直接推進到下一句（唔靠 scroll 結果，避免差 1px 死循環） */
+    focusIdx = Math.min(focusIdx + 1, sentences.length - 1);
+    const next = sentences[focusIdx];
+    const target = next.top - window.innerHeight * 0.42;   /* 下一句句首對準視線中心 */
     autoScrolling = true;
+    focusLastUser = Date.now();   /* 推進後重置計時，避免 interval 連續觸發打斷 smooth scroll */
     window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
     setTimeout(() => { autoScrolling = false; }, 700);
   }
 
   function onFocusScroll() {
-    if (autoScrolling) { updateFocusLine(); return; }
+    if (autoScrolling) { updateFocusLine(true); return; }   /* 自動推進期間：窗口跟住，但唔重置 focusIdx */
     focusLastUser = Date.now();
-    updateFocusLine();
+    updateFocusLine(false);
   }
 
   function setFocusMode(on) {
@@ -448,14 +484,14 @@ footer {
     document.body.classList.toggle('focus-mode', on);
     $('#btn-focus').classList.toggle('active', on);
     if (on) {
-      collectLines();
-      updateFocusLine();
+      collectSentences();
+      updateFocusLine(false);
       focusLastUser = Date.now();
       window.addEventListener('scroll', onFocusScroll, { passive: true });
-      window.addEventListener('resize', () => { collectLines(); updateFocusLine(); });
+      window.addEventListener('resize', () => { collectSentences(); updateFocusLine(false); });
       focusTimer = setInterval(() => {
         if (!focusMode) return;
-        if (Date.now() - focusLastUser > 3500) advanceFocus();   /* 冇郁 3.5s → 自動推進下一行 */
+        if (Date.now() - focusLastUser > 3500) advanceFocus();   /* 冇郁 3.5s → 自動推進下一句 */
       }, 1000);
     } else {
       clearInterval(focusTimer); focusTimer = null;
