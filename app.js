@@ -401,7 +401,6 @@ function renderThumbs() {
 async function runAnalysis() {
   if (!pageImages.length) { toast('未有相片，請先加入書頁相片', 'warn'); return; }
   results.length = 0;
-  renderResultCards();
   setBusy(true);
   try {
     const total = pageImages.length;
@@ -495,18 +494,12 @@ function bindFullEdit() {
   });
 }
 
-/* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣 */
+/* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣
+ * 唔經 AI 都常駐一張空卡供手動輸入；捨棄 button 有內容先顯示；只剩一張捨棄後自動補新卡 */
 function renderResultCards() {
   const wrap = $('#result-cards');
   wrap.innerHTML = '';
-  if (!results.length) {
-    const p = document.createElement('p');
-    p.className = 'hint';
-    p.style.textAlign = 'center';
-    p.textContent = '未有任何結果。加入書頁相片後撳「🤖 AI 分析」。';
-    wrap.appendChild(p);
-    return;
-  }
+  if (!results.length) pushEmptyCard();          /* 初始／全部捨棄／全部儲存後：至少一張空卡供手動輸入 */
   results.forEach((r, i) => {
     const card = document.createElement('div');
     card.className = 'result-card';
@@ -521,7 +514,11 @@ function renderResultCards() {
       el.value = r[key] || '';
       el.placeholder = ph || '';
       if (tag === 'textarea') el.classList.add('content-text');   /* 撳入去彈全屏編輯 */
-      el.addEventListener('input', () => { r[key] = el.value; if (tag === 'textarea') autosize(el); });
+      el.addEventListener('input', () => {
+        r[key] = el.value;
+        if (tag === 'textarea') autosize(el);
+        updateDiscardButton(card, r);
+      });
       lab.appendChild(span);
       lab.appendChild(el);
       return lab;
@@ -539,11 +536,12 @@ function renderResultCards() {
       if (!confirm('確定捨棄「第 ' + (i + 1) + ' 張」嘅結果？')) return;
       const idx = results.findIndex(x => x.id === r.id);
       if (idx >= 0) results.splice(idx, 1);
-      renderResultCards();
+      renderResultCards();                        /* 若已清空，render 會自動補一張空卡 */
     };
     head.appendChild(title);
     head.appendChild(discard);
     card.appendChild(head);
+    updateDiscardButton(card, r);                /* 初始：冇內容 → 隱藏捨棄 */
 
     card.appendChild(mk('input', 'chapter', '章節', 'Chapter'));
     card.appendChild(mk('input', 'topic', '主題', 'Topic'));
@@ -562,6 +560,18 @@ function renderResultCards() {
     wrap.appendChild(card);
   });
   wrap.querySelectorAll('textarea').forEach(autosize);
+}
+
+/* 捨棄 button：卡片有任何欄位輸入過內容先顯示 */
+function updateDiscardButton(card, r) {
+  const has = !!(r.chapter || r.topic || r.page || r.content);
+  const btn = card.querySelector('.danger');
+  if (btn) btn.style.display = has ? '' : 'none';
+}
+
+/* 新增一張空嘅手動輸入卡 */
+function pushEmptyCard() {
+  results.push({ id: uid(), chapter: '', topic: '', page: '', content: '' });
 }
 
 /* =========================================================
@@ -1464,6 +1474,7 @@ async function init() {
   } catch (e) { /* 離線 / private / 冇 token */ }
 
   showTab('scan');
+  renderResultCards();          /* 掃描頁初始即出一張空卡，唔需 AI 分析就可以手動輸入 */
   renderStatusCheck();
   refreshLibrary();
   renderVersionInfo();
