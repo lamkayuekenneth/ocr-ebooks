@@ -443,7 +443,7 @@ footer {
       const n = walker.currentNode;
       if (!n.data.trim()) continue;
       const pe = n.parentElement;
-      if (pe && pe.closest('.chapter-tag')) continue;   /* 章節標籤唔算閱讀行 */
+      if (pe && pe.closest('.chapter-tag, .topic')) continue;   /* 章節標籤／段落標題唔算句子 */
       const text = n.data;
       let s = 0;
       for (let i = 0; i < text.length; i++) {
@@ -554,23 +554,44 @@ footer {
     }
   }
 
-  /* 點擊正文任何位置 → focus 移到該句（caret 定位 text node + 字符 offset） */
+  /* 點擊正文任何位置 → focus 移到該句
+     匹配層級：① caret 精準（node + offset 喺句範圍）→ ② node 一致（唔理 offset）→ ③ 座標最近句（兜底，一定搵到） */
   function sentenceAtPoint(x, y) {
     if (!sentences.length) return -1;
-    let range = null;
-    if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(x, y);
+    let node = null, off = 0;
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
+    if (r && r.startContainer) { node = r.startContainer; off = r.startOffset; }
     else if (document.caretPositionFromPoint) {
       const p = document.caretPositionFromPoint(x, y);
-      if (p) range = { startContainer: p.offsetNode, startOffset: p.offset };
+      if (p) { node = p.offsetNode; off = p.offset; }
     }
-    if (!range || !range.startContainer || range.startContainer.nodeType !== 3) return -1;
-    const node = range.startContainer;
-    const off = range.startOffset;
+    if (!node || node.nodeType !== 3) {
+      /* caret 失敗（部分 mobile/safari）→ elementFromPoint 搵最細 text node */
+      const el = document.elementFromPoint(x, y);
+      if (el) {
+        const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const t = w.nextNode();
+        if (t) { node = t; off = 0; }
+      }
+    }
+    if (node && node.nodeType === 3) {
+      for (let i = 0; i < sentences.length; i++) {
+        const s = sentences[i];
+        if (s.node === node && off >= s.s && off <= s.e) return i;
+      }
+      for (let i = 0; i < sentences.length; i++) {
+        if (sentences[i].node === node) return i;       /* 同一 node：caret offset 有偏差都認 */
+      }
+    }
+    /* 兜底：揀中心最接近點擊位置嘅句（absolute 座標，scroll 唔影響） */
+    const ay = window.scrollY + y;
+    let best = -1, bd = Infinity;
     for (let i = 0; i < sentences.length; i++) {
       const s = sentences[i];
-      if (s.node === node && off >= s.s && off <= s.e) return i;
+      const d = Math.abs((s.top + s.bottom) / 2 - ay);
+      if (d < bd) { bd = d; best = i; }
     }
-    return -1;
+    return best;
   }
 
   /* 慢速平滑捲動（自己控制節奏，逐步移向目標；新動畫會完全取代舊動畫，舊動畫唔會再郁 scroll） */
