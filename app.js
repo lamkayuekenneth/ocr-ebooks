@@ -1101,6 +1101,19 @@ function renderDetailRows() {
   tbody.querySelectorAll('textarea').forEach(autosize);
   if (!hasFilter && !detailRows.length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">呢本書未有內容。</td></tr>';
   if (hasFilter && !tbody.querySelectorAll('tr').length) tbody.innerHTML = '<tr><td colspan="3" class="hint" style="text-align:center">冇相符嘅內容，調整篩選條件。</td></tr>';
+  /* 篩選模式唔顯示「手動新增一行」（新 row 會畀 filter 隱藏，容易誤會） */
+  const addBtn = $('#btn-detail-add-row');
+  if (addBtn) addBtn.style.display = hasFilter ? 'none' : '';
+}
+
+/* 喺表格最底手動加一 row（空，供手動輸入） */
+function addDetailRow() {
+  if (!detailFile) return;
+  detailRows.push({ id: uid(), topic: '', content: '', chapter: '', page: '' });
+  markDetailDirty();
+  renderDetailRows();
+  const rows = $('#book-detail-table tbody tr');
+  if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function saveDetail() {
@@ -1398,6 +1411,7 @@ function bindEvents() {
   /* 書庫 */
   $('#lib-filter').addEventListener('input', refreshLibrary);
   $('#btn-detail-save').addEventListener('click', saveDetail);
+  $('#btn-detail-add-row').addEventListener('click', addDetailRow);
   $('#btn-detail-back').addEventListener('click', () => {
     if (detailDirty && !confirm('有未儲存嘅修改，確定捨棄？')) return;
     $('#book-detail-card').classList.add('hidden');
