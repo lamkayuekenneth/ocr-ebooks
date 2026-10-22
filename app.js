@@ -488,10 +488,7 @@ function bindFullEdit() {
     }
   });
   $('#full-edit-close').addEventListener('click', closeFullEdit);
-  $('#full-edit-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeFullEdit(); });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !$('#full-edit-overlay').classList.contains('hidden')) closeFullEdit();
-  });
+  /* 只可撳「✓ 完成」關閉：唔畀撳背景或 Esc 關閉，避免唔小心整冇編輯內容 */
 }
 
 /* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣
