@@ -459,8 +459,16 @@ function closeFullEdit() {
   if (!fullEditTarget) return;
   const v = $('#full-edit-text').value;
   if (fullEditTarget.el) {
-    fullEditTarget.el.value = v;
-    autosize(fullEditTarget.el);
+    const el = fullEditTarget.el;
+    el.value = v;
+    autosize(el);
+    /* 同步返 row 數據 + 標記未儲存（唔可以淨係改 DOM，否則儲存時用返舊 data） */
+    const rid = el.dataset && el.dataset.rid;
+    if (rid) {
+      const row = detailRows.find(x => x.id === rid);
+      const key = el.classList.contains('topic-input') ? 'topic' : 'content';
+      if (row) { row[key] = v; markDetailDirty(); }
+    }
   } else {
     fullEditTarget.row[fullEditTarget.key] = v;
     markDetailDirty();
@@ -1058,6 +1066,7 @@ function renderDetailRows() {
       cw.value = r.content || '';
       cw.placeholder = '正文';
       cw.className = 'content-text';   /* 撳入去彈全屏編輯 */
+      cw.dataset.rid = r.id;           /* 全屏編輯「完成」時同步返 row */
       cw.addEventListener('input', () => { r.content = cw.value; autosize(cw); markDetailDirty(); });
       contentTd.appendChild(cw);
     }
