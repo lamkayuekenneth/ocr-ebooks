@@ -3,15 +3,15 @@
   "author": "Kenneth",
   "rows": [
     {
-      "topic": "Applying Liquid Glass to custom views",
-      "content": "Interfaces across Apple platforms feature a new dynamic material called Liquid Glass, which combines the optical properties of glass with a sense of fluidity. Liquid Glass is a material that blurs content behind it, reflects color and light of surrounding content, and reacts to touch and pointer interactions in real time. Standard components in SwiftUI use Liquid Glass. Adopt Liquid Glass on custom components to move, combine, and morph them into one another with unique animations and transitions.",
-      "chapter": "Chapter 3 小夫的人際學",
-      "page": "150"
-    },
-    {
       "topic": "Apply and configure Liquid Glass effects",
       "content": "",
       "chapter": "Applying Liquid Glass to custom views",
+      "page": "1"
+    },
+    {
+      "topic": "Applying Liquid Glass to custom views",
+      "content": "Interfaces across Apple platforms feature a new dynamic material called Liquid Glass, which combines the optical properties of glass with a sense of fluidity. Liquid Glass is a material that blurs content behind it, reflects color and light of surrounding content, and reacts to touch and pointer interactions in real time. Standard components in SwiftUI use Liquid Glass. Adopt Liquid Glass on custom components to move, combine, and morph them into one another with unique animations and transitions.",
+      "chapter": "Chapter 3 小夫的人際學",
       "page": "2"
     }
   ]
