@@ -536,6 +536,37 @@ footer {
     }
   }
 
+  /* 點擊正文任何位置 → focus 移到該句（caret 定位 text node + 字符 offset） */
+  function sentenceAtPoint(x, y) {
+    if (!sentences.length) return -1;
+    let range = null;
+    if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(x, y);
+    else if (document.caretPositionFromPoint) {
+      const p = document.caretPositionFromPoint(x, y);
+      if (p) range = { startContainer: p.offsetNode, startOffset: p.offset };
+    }
+    if (!range || !range.startContainer || range.startContainer.nodeType !== 3) return -1;
+    const node = range.startContainer;
+    const off = range.startOffset;
+    for (let i = 0; i < sentences.length; i++) {
+      const s = sentences[i];
+      if (s.node === node && off >= s.s && off <= s.e) return i;
+    }
+    return -1;
+  }
+
+  $('#book').addEventListener('click', e => {
+    if (!focusMode) return;
+    const i = sentenceAtPoint(e.clientX, e.clientY);
+    if (i < 0) return;
+    focusIdx = i;
+    applyFocusSentence();
+    const target = sentences[focusIdx].top - window.innerHeight * 0.42;
+    focusNavLock = true;
+    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    setTimeout(() => { focusNavLock = false; }, 600);
+  });
+
   $('#btn-focus').addEventListener('click', () => setFocusMode(!focusMode));
   $('#btn-focus-prev').addEventListener('click', () => focusMove(-1));
   $('#btn-focus-next').addEventListener('click', () => focusMove(1));
