@@ -457,6 +457,7 @@ function openFullEdit(target) {
 function closeFullEdit() {
   if (!fullEditTarget) return;
   const v = $('#full-edit-text').value;
+  let isDetail = false;
   if (fullEditTarget.el) {
     const el = fullEditTarget.el;
     el.value = v;
@@ -466,17 +467,20 @@ function closeFullEdit() {
     if (rid) {
       const row = detailRows.find(x => x.id === rid);
       const key = el.classList.contains('topic-input') ? 'topic' : 'content';
-      if (row) { row[key] = v; markDetailDirty(); }
+      if (row) { row[key] = v; markDetailDirty(); isDetail = !!detailFile; }
     }
   } else {
     fullEditTarget.row[fullEditTarget.key] = v;
     markDetailDirty();
+    isDetail = !!detailFile;
   }
   fullEditTarget = null;
   $('#full-edit-overlay').classList.add('hidden');
   /* filter 檢視模式：寫返入 row 之後 re-render，highlight 即時更新 */
   const dc = $('#book-detail-card');
   if (dc && !dc.classList.contains('hidden') && typeof renderDetailRows === 'function') renderDetailRows();
+  /* 書本詳情模式：撳「完成」直接將內容更新儲存落 repo JSON（掃描頁 card 模式照舊等用戶撳確認儲存） */
+  if (isDetail) saveDetail();
 }
 
 function bindFullEdit() {
