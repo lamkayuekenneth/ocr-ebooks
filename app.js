@@ -488,7 +488,19 @@ function bindFullEdit() {
     }
   });
   $('#full-edit-close').addEventListener('click', closeFullEdit);
+  $('#full-edit-discard').addEventListener('click', discardFullEdit);
   /* 只可撳「✓ 完成」關閉：唔畀撳背景或 Esc 關閉，避免唔小心整冇編輯內容 */
+}
+
+/* 捨棄變更：唔同步返 row / textarea，直接關閉（需用戶確認） */
+function discardFullEdit() {
+  if (!fullEditTarget) return;
+  if (!confirm('確定捨棄今次嘅變更？')) return;
+  fullEditTarget = null;
+  $('#full-edit-overlay').classList.add('hidden');
+  /* filter 檢視模式：內容冇變，但 re-render 以恢復正常檢視 */
+  const dc = $('#book-detail-card');
+  if (dc && !dc.classList.contains('hidden') && typeof renderDetailRows === 'function') renderDetailRows();
 }
 
 /* 辨識結果：每張相一個獨立直排 card（chapter → topic → page → content），各有儲存/捨棄掣
