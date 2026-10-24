@@ -810,11 +810,17 @@ async function refreshLibrary() {
     tdCount.textContent = '—';
     const tdAct = document.createElement('td');
     tdAct.className = 'open-cell';
+    const btnCsv = document.createElement('button');
+    btnCsv.className = 'btn small';
+    btnCsv.textContent = '⬇ CSV';
+    btnCsv.title = '匯出成 CSV 下載';
+    btnCsv.onclick = () => exportBookCSV(b.file, b.book_title, b.author);
     const btnDel = document.createElement('button');
     btnDel.className = 'btn small danger';
     btnDel.textContent = '刪除';
     btnDel.title = '刪除成個 json 檔案';
     btnDel.onclick = () => deleteBookFile(b.file);
+    tdAct.appendChild(btnCsv);
     tdAct.appendChild(btnDel);
     tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
     tbody.appendChild(tr);
@@ -830,6 +836,39 @@ async function refreshLibrary() {
   });
   if (!rows.length) tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center">未有書。去「掃描」頁加入新書，或檢查設定頁嘅 GitHub 資料。</td></tr>';
   $('#lib-hint').textContent = '共 ' + rows.length + ' 本書';
+}
+
+/* 匯出 CSV：由 book JSON 生成 CSV 並下載（格式跟 books/聖經 (和合修訂本) - 創世紀.csv template 一致：
+ * 第1行 book_title,<書名>,,　第2行 author,<作者>,,　第3行 header，之後每節一行）
+ */
+function exportBookCSV(file, bookTitle, author) {
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
+  getFileContent(file).then(raw => {
+    if (!raw || !raw.content) { toast('讀取 ' + file + ' 失敗', 'error'); return; }
+    let book;
+    try { book = JSON.parse(raw.content); } catch (e) { toast(file + ' 唔係有效 JSON', 'error'); return; }
+    const rows = Array.isArray(book.rows) ? book.rows : [];
+    const q = v => {   /* RFC4180：含逗號／引號／換行先 quote，引號加倍 */
+      const s = String(v == null ? '' : v);
+      return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [];
+    lines.push('\uFEFFbook_title,' + q(bookTitle || book.book_title || '') + ',,');
+    lines.push('author,' + q(author || book.author || '') + ',,');
+    lines.push('chapter,page,topic,content');
+    rows.forEach(r => {
+      lines.push([q(r.chapter), q(r.page), q(r.topic), q(r.content)].join(','));
+    });
+    const csv = lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = String(file).replace(/^books\//, '').replace(/\.json$/i, '') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast('已匯出 ' + a.download + '（' + rows.length + ' 節）', 'success');
+  }).catch(e => toast('匯出失敗：' + e.message, 'error'));
 }
 
 /* 刪除成個書本 json（連 books.json 註冊表一齊更新） */
