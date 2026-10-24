@@ -344,6 +344,23 @@ let detailFile = null;
 let detailRows = [];     // {id, topic, content, chapter, page}
 let detailDirty = false; // 有未儲存修改（關閉此書時要確認）
 function markDetailDirty() { detailDirty = true; }
+
+/* 有無未儲存內容——refresh / F5 / 關頁面前要攔截 */
+function hasUnsavedChanges() {
+  if (fullEditTarget) return true;                          /* 全屏編輯 popup 開緊（內容未撳完成） */
+  if (savingLock) return true;                              /* 儲存寫入緊 repo，唔好打斷 */
+  if (detailDirty) return true;                             /* 書本詳情改咗未儲存 */
+  if (results.some(r => r.chapter || r.topic || r.page || r.content)) return true;  /* 掃描頁有未確認內容卡 */
+  const mp = $('#book-meta-modal');
+  if (mp && !mp.classList.contains('hidden')) return true;  /* 書本 meta（改名／作者）編輯開緊 */
+  return false;
+}
+window.addEventListener('beforeunload', e => {
+  if (hasUnsavedChanges()) {
+    e.preventDefault();
+    e.returnValue = '';   /* 觸發瀏覽器原生「確定要離開頁面嗎？」確認 */
+  }
+});
 let hoverZone = 'page';  // 貼上圖片時去邊度
 
 /* =========================================================
