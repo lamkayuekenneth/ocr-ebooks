@@ -752,6 +752,7 @@ async function saveSingleRow(row) {
     }
 
     await writeFile(fileName, JSON.stringify(book, null, 2), `Add book content to ${fileName}`);
+    await writeFile(csvPathFor(fileName), buildBookCSV(book, book.book_title, book.author), `Sync CSV for ${csvPathFor(fileName)}`);   /* 每次儲存同步 books_csv */
     await writeFile('books.json', JSON.stringify(reg, null, 2), 'Update books registry');
     toast('已儲存到 ' + fileName + '（而家共 ' + book.rows.length + ' 條）', 'success');
 
@@ -802,8 +803,8 @@ async function refreshLibrary() {
     fileWrap.className = 'title-wrap';
     const btnImport = document.createElement('button');
     btnImport.className = 'btn small';
-    btnImport.textContent = '⇧ Import';
-    btnImport.title = '上載 csv/json 取代呢個 json 檔案';
+    btnImport.textContent = '⇧ 匯入';
+    btnImport.title = '上載 csv/json 取代呢個 json 檔案（會同步更新 books_csv）';
     btnImport.onclick = () => importBookFile(b.file);
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
@@ -870,28 +871,36 @@ async function refreshLibrary() {
   $('#lib-hint').textContent = '共 ' + rows.length + ' 本書';
 }
 
-/* 匯出 CSV：由 book JSON 生成 CSV 並下載（格式跟 books/聖經 (和合修訂本) - 創世紀.csv template 一致：
- * 第1行 book_title,<書名>,,　第2行 author,<作者>,,　第3行 header，之後每節一行）
- */
+/* 書本 JSON → CSV 字串（format 同 template 一致：BOM＋book_title/author 兩行 meta＋header＋每節一行，RFC4180 quote） */
+function buildBookCSV(book, bookTitle, author) {
+  const rows = Array.isArray(book.rows) ? book.rows : [];
+  const q = v => {   /* RFC4180：含逗號／引號／換行先 quote，引號加倍 */
+    const s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [];
+  lines.push('\uFEFFbook_title,' + q(bookTitle || book.book_title || '') + ',,');
+  lines.push('author,' + q(author || book.author || '') + ',,');
+  lines.push('chapter,page,topic,content');
+  rows.forEach(r => {
+    lines.push([q(r.chapter), q(r.page), q(r.topic), q(r.content)].join(','));
+  });
+  return lines.join('\r\n');
+}
+
+/* books/xxx.json → books_csv/xxx.csv */
+function csvPathFor(file) {
+  return String(file).replace(/^books\//, 'books_csv/').replace(/\.json$/i, '.csv');
+}
+
+/* 匯出 CSV：由 book JSON 生成 CSV 並下載（格式同 books_csv 入面嘅同步 CSV 一致） */
 function exportBookCSV(file, bookTitle, author) {
   if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
   getFileContent(file).then(raw => {
     if (!raw || !raw.content) { toast('讀取 ' + file + ' 失敗', 'error'); return; }
     let book;
     try { book = JSON.parse(raw.content); } catch (e) { toast(file + ' 唔係有效 JSON', 'error'); return; }
-    const rows = Array.isArray(book.rows) ? book.rows : [];
-    const q = v => {   /* RFC4180：含逗號／引號／換行先 quote，引號加倍 */
-      const s = String(v == null ? '' : v);
-      return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    };
-    const lines = [];
-    lines.push('\uFEFFbook_title,' + q(bookTitle || book.book_title || '') + ',,');
-    lines.push('author,' + q(author || book.author || '') + ',,');
-    lines.push('chapter,page,topic,content');
-    rows.forEach(r => {
-      lines.push([q(r.chapter), q(r.page), q(r.topic), q(r.content)].join(','));
-    });
-    const csv = lines.join('\r\n');
+    const csv = buildBookCSV(book, bookTitle, author);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -899,7 +908,7 @@ function exportBookCSV(file, bookTitle, author) {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-    toast('已匯出 ' + a.download + '（' + rows.length + ' 節）', 'success');
+    toast('已匯出 ' + a.download + '（' + (book.rows || []).length + ' 節）', 'success');
   }).catch(e => toast('匯出失敗：' + e.message, 'error'));
 }
 
@@ -941,7 +950,9 @@ function importBookFile(file) {
     if (!confirm('將用上載嘅「' + f.name + '」（' + v.info + '）取代現存「' + file + '」？\n呢個動作會覆蓋 repo 上嘅檔案。')) { inp.value = ''; return; }
     setBusy(true);
     try {
+      const imported = JSON.parse(v.content);   /* 已驗證，必然 parse 到 */
       await writeFile(file, v.content, 'Import ' + f.name + ' → ' + file);
+      await writeFile(csvPathFor(file), buildBookCSV(imported, imported.book_title, imported.author), `Sync CSV for ${csvPathFor(file)}`);
       toast('已匯入並取代 ' + file + '（' + v.rows + ' 節）', 'success');
       refreshLibrary();
     } catch (e) {
@@ -1130,10 +1141,13 @@ async function saveBookMeta() {
     book.author = author;
     if (newFile === oldFile) {
       await writeFile(oldFile, JSON.stringify(book, null, 2), `Update book meta for ${oldFile}`);
+      await writeFile(csvPathFor(oldFile), buildBookCSV(book, title, author), `Sync CSV for ${csvPathFor(oldFile)}`);
     } else {
-      /* rename：新檔名寫入新 path，再刪舊 path */
+      /* rename：新檔名寫入新 path，再刪舊 path（csv 同步 rename） */
       await writeFile(newFile, JSON.stringify(book, null, 2), `Rename ${oldFile} to ${newFile}`);
+      await writeFile(csvPathFor(newFile), buildBookCSV(book, title, author), `Sync CSV for ${csvPathFor(newFile)}`);
       await deleteFile(oldFile, `Delete old file ${oldFile} after rename`);
+      await deleteFile(csvPathFor(oldFile), `Delete old CSV ${csvPathFor(oldFile)} after rename`);
     }
 
     /* 同步更新 books.json 註冊表 */
@@ -1339,6 +1353,7 @@ async function saveDetail() {
       .filter(r => (r.topic && r.topic.trim()) || (r.content && r.content.trim()))
       .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }));
     await writeFile(detailFile, JSON.stringify(book, null, 2), `Update book content in ${detailFile}`);
+    await writeFile(csvPathFor(detailFile), buildBookCSV(book, book.book_title, book.author), `Sync CSV for ${csvPathFor(detailFile)}`);
     detailDirty = false;
     toast('已儲存 ' + detailFile + '（' + book.rows.length + ' 條）', 'success');
     refreshLibrary();
