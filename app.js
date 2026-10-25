@@ -1051,6 +1051,7 @@ async function deleteBookFile(file) {
   setBusy(true);
   try {
     await deleteFile(file, `Delete ${file}`);
+    await deleteFile(csvPathFor(file), `Delete CSV ${csvPathFor(file)}`);   /* 同步刪 books_csv 對應檔（唔存在都安全） */
     /* 同步喺 books.json 移除記錄 */
     const regRaw = await getFileContent('books.json');
     let reg = [];
