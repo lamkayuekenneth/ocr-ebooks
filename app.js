@@ -160,7 +160,7 @@ async function getFileContent(path) {
     if (!d || !d.content) return null;
     const bin = atob(d.content.replace(/\s/g, ''));
     const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    return { content: new TextDecoder('utf-8').decode(bytes), sha: d.sha };
+    return { content: new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, ''), sha: d.sha };
   } catch (e) {
     if (e.status === 404) return null;
     throw e;
@@ -798,12 +798,21 @@ async function refreshLibrary() {
   rows.forEach(b => {
     const tr = document.createElement('tr');
     const tdFile = document.createElement('td');
+    const fileWrap = document.createElement('div');
+    fileWrap.className = 'title-wrap';
+    const btnImport = document.createElement('button');
+    btnImport.className = 'btn small';
+    btnImport.textContent = '⇧ Import';
+    btnImport.title = '上載 csv/json 取代呢個 json 檔案';
+    btnImport.onclick = () => importBookFile(b.file);
     const fileBtn = document.createElement('button');
     fileBtn.className = 'btn-link';
     fileBtn.innerHTML = hl(String(b.file).replace(/^books\//, ''), filter);   /* 唔顯示 books/ 前綴 + matched 高亮 */
     fileBtn.title = b.file + '（撳入去編輯書名 / 作者 / 檔名）';
     fileBtn.onclick = () => openBookMetaPopup(b.file);
-    tdFile.appendChild(fileBtn);
+    fileWrap.appendChild(btnImport);
+    fileWrap.appendChild(fileBtn);
+    tdFile.appendChild(fileWrap);
     const tdTitle = document.createElement('td');
     const titleWrap = document.createElement('div');
     titleWrap.className = 'title-wrap';
@@ -832,12 +841,18 @@ async function refreshLibrary() {
     btnCsv.textContent = '⬇ CSV';
     btnCsv.title = '匯出成 CSV 下載';
     btnCsv.onclick = () => exportBookCSV(b.file, b.book_title, b.author);
+    const btnJson = document.createElement('button');
+    btnJson.className = 'btn small';
+    btnJson.textContent = '⬇ JSON';
+    btnJson.title = '下載現存嘅 json 檔案';
+    btnJson.onclick = () => exportBookJSON(b.file);
     const btnDel = document.createElement('button');
     btnDel.className = 'btn small danger';
     btnDel.textContent = '刪除';
     btnDel.title = '刪除成個 json 檔案';
     btnDel.onclick = () => deleteBookFile(b.file);
     tdAct.appendChild(btnCsv);
+    tdAct.appendChild(btnJson);
     tdAct.appendChild(btnDel);
     tr.appendChild(tdFile); tr.appendChild(tdTitle); tr.appendChild(tdAuthor); tr.appendChild(tdCount); tr.appendChild(tdAct);
     tbody.appendChild(tr);
@@ -886,6 +901,135 @@ function exportBookCSV(file, bookTitle, author) {
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
     toast('已匯出 ' + a.download + '（' + rows.length + ' 節）', 'success');
   }).catch(e => toast('匯出失敗：' + e.message, 'error'));
+}
+
+/* 匯出 JSON：由 repo 下載現存嗰本書嘅 json 檔案 */
+function exportBookJSON(file) {
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
+  getFileContent(file).then(raw => {
+    if (!raw || !raw.content) { toast('讀取 ' + file + ' 失敗', 'error'); return; }
+    const blob = new Blob([raw.content], { type: 'application/json;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = String(file).replace(/^books\//, '');
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast('已下載 ' + a.download, 'success');
+  }).catch(e => toast('下載失敗：' + e.message, 'error'));
+}
+
+/* 匯入：上載 csv/json 取代現存 json。前端做 format validation，
+ * 通過後再叫用戶確認先寫入 repo；唔通過就報原因、可以再上載。 */
+function importBookFile(file) {
+  if (savingLock) { toast('上一個儲存未完成，請稍候…', 'warn'); return; }
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json,.csv,application/json,text/csv';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    let text;
+    try { text = await f.text(); } catch (e) { toast('讀唔到檔案：' + e.message, 'error'); inp.value = ''; return; }
+    const v = validateBookFile(text, f.name);
+    if (!v.ok) {
+      /* 唔通過：話俾用戶知原因，input 清空等佢再上載 retry */
+      toast('匯入失敗：' + v.error, 'error');
+      inp.value = '';
+      return;
+    }
+    if (!confirm('將用上載嘅「' + f.name + '」（' + v.info + '）取代現存「' + file + '」？\n呢個動作會覆蓋 repo 上嘅檔案。')) { inp.value = ''; return; }
+    setBusy(true);
+    try {
+      await writeFile(file, v.content, 'Import ' + f.name + ' → ' + file);
+      toast('已匯入並取代 ' + file + '（' + v.rows + ' 節）', 'success');
+      refreshLibrary();
+    } catch (e) {
+      toast('匯入失敗：' + e.message, 'error');
+    } finally {
+      setBusy(false);
+      inp.value = '';
+    }
+  };
+  inp.click();
+}
+
+/* 書本 csv/json 格式驗證（前端）：
+ * 返回 {ok, error?, content?, info?, rows?}——content 係要寫入 repo 嘅 JSON 字串（UTF-8） */
+function validateBookFile(text, filename) {
+  const isCsv = /\.csv$/i.test(filename);
+  const isJson = /\.json$/i.test(filename);
+  if (!isCsv && !isJson) return { ok: false, error: '只支援 .csv 或 .json 檔案（你上載咗：' + (filename || '?') + '）' };
+  const clean = text.replace(/^\uFEFF/, '');   /* 有 BOM 就去 BOM（UTF-8 BOM / 無 BOM 都接受） */
+
+  if (isJson) {
+    let obj;
+    try { obj = JSON.parse(clean); } catch (e) { return { ok: false, error: 'JSON 格式無效：' + e.message }; }
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { ok: false, error: 'JSON 必須係一個書本物件（{book_title, author, rows:[...]}）' };
+    if (!Array.isArray(obj.rows)) return { ok: false, error: 'JSON 缺少 rows 陣列——需要 {"rows":[{chapter,page,topic,content},...]}' };
+    for (let n = 0; n < obj.rows.length; n++) {
+      const r = obj.rows[n];
+      if (!r || typeof r !== 'object') return { ok: false, error: 'rows 第 ' + (n + 1) + ' 項唔係物件' };
+      if (r.chapter == null || String(r.chapter).trim() === '') return { ok: false, error: 'rows 第 ' + (n + 1) + ' 項缺少 chapter 欄位' };
+    }
+    const content = JSON.stringify(obj, null, 2);
+    return { ok: true, content, rows: obj.rows.length, info: obj.rows.length + ' 節，直接以 JSON 儲存' };
+  }
+
+  /* CSV：可選頭兩行 meta（book_title,<名>, ／ author,<名>,）＋ header chapter,page,topic,content ＋ 每節一行 */
+  const lines = clean.replace(/\r\n?/g, '\n').split('\n');
+  const meta = { book_title: '', author: '' };
+  let i = 0;
+  if (lines[0] && /^book_title\s*,/i.test(lines[0].trim())) {
+    const p0 = parseCSVLine(lines[0]).fields;
+    meta.book_title = String(p0[1] || '').trim();
+    i = 1;
+    if (lines[1] && /^author\s*,/i.test(lines[1].trim())) {
+      const p1 = parseCSVLine(lines[1]).fields;
+      meta.author = String(p1[1] || '').trim();
+      i = 2;
+    }
+  }
+  if (!(i < lines.length) || !/^chapter\s*,page\s*,topic\s*,content\s*$/i.test(lines[i].trim())) {
+    return { ok: false, error: 'CSV 缺少表頭行 chapter,page,topic,content（開頭可選 book_title／author 兩行 meta）' };
+  }
+  i++;
+  const rows = [];
+  let buf = null, rn = 0;
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim() && !buf) continue;
+    const parsed = parseCSVLine(buf ? buf + '\n' + line : line);
+    if (parsed.inQ) { buf = (buf ? buf + '\n' : '') + line; continue; }   /* quoted 欄位跨行：繼續合併 */
+    buf = null;
+    rn++;
+    const p = parsed.fields;
+    if (p.length < 4) return { ok: false, error: 'CSV 第 ' + rn + ' 行資料欄位不足（需要 chapter,page,topic,content 4 欄）' };
+    const chapter = String(p[0]).trim();
+    if (!chapter) return { ok: false, error: 'CSV 第 ' + rn + ' 行 chapter 係空' };
+    rows.push({ chapter, page: String(p[1]).trim(), topic: String(p[2]).trim(), content: String(p[3]) });
+  }
+  if (!rows.length) return { ok: false, error: 'CSV 冇任何資料行' };
+  const obj = { book_title: meta.book_title || '', author: meta.author || '', rows };
+  return { ok: true, content: JSON.stringify(obj, null, 2), rows: rows.length, info: rows.length + ' 節，已轉換為 JSON 儲存' };
+}
+
+/* 簡易 RFC4180 CSV 行 parser：支援 quoted fields（"" 轉義） */
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false;
+      } else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return { fields: out, inQ };
 }
 
 /* 刪除成個書本 json（連 books.json 註冊表一齊更新） */
