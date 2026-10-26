@@ -479,6 +479,9 @@ function closeFullEdit() {
     const el = fullEditTarget.el;
     el.value = v;
     autosize(el);
+    /* 觸發 input listener：掃描頁 card 嘅 mk() 用 input 同步返 row，
+     * 直接 assign value 唔會觸發——唔 dispatch 就會儲存咗舊值（content 唔見） */
+    el.dispatchEvent(new Event('input', { bubbles: true }));
     /* 同步返 row 數據 + 標記未儲存（唔可以淨係改 DOM，否則儲存時用返舊 data） */
     const rid = el.dataset && el.dataset.rid;
     if (rid) {
