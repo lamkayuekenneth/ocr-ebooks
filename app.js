@@ -111,7 +111,8 @@ const DEFAULT_SETTINGS = {
   base_url: 'https://openrouter.ai/api/v1',
   api_key: '',
   title_model: 'deepseek/deepseek-v4.1-flash',
-  title_api_key: ''
+  title_api_key: '',
+  theme: 'auto'   /* auto（跟系統） | light | dark */
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -127,6 +128,49 @@ function loadLocalSettings() {
 
 function saveLocalSettings() {
   try { localStorage.setItem('ocreb_settings', JSON.stringify(settings)); } catch (e) { /* ignore */ }
+}
+
+/* =========================================================
+ * 主題（黑夜模式）：auto（跟系統）/ light / dark
+ * ========================================================= */
+const THEME_LABEL = { auto: '自動（跟系統）', light: '淺色', dark: '深色' };
+
+function effectiveDark() {
+  const t = (settings.theme || 'auto');
+  if (t === 'dark') return true;
+  if (t === 'light') return false;
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+
+function applyTheme() {
+  const dark = effectiveDark();
+  document.body.classList.toggle('dark', dark);
+  /* 同步 header 快速切換 button 同設定頁 select */
+  const btn = $('#btn-theme');
+  if (btn) {
+    btn.textContent = (settings.theme || 'auto') === 'auto' ? '🔄' : (dark ? '🌙' : '☀️');
+    btn.title = '主題：' + (THEME_LABEL[settings.theme || 'auto'] || settings.theme) + '（撳一下切換）';
+  }
+  const sel = $('#theme-select');
+  if (sel) sel.value = settings.theme || 'auto';
+  /* 順手將 theme 存埋入 localStorage，reader 頁共用同一設定 */
+  saveLocalSettings();
+}
+
+function setTheme(t) {
+  if (!THEME_LABEL[t]) t = 'auto';
+  settings.theme = t;
+  applyTheme();
+  if (typeof toast === 'function') toast('主題已設為 ' + THEME_LABEL[t], 'success');
+}
+
+/* 自動模式：系統深淺轉換時即時跟住變 */
+function watchSystemTheme() {
+  if (!window.matchMedia) return;
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const h = () => { if ((settings.theme || 'auto') === 'auto') applyTheme(); };
+  if (mq.addEventListener) mq.addEventListener('change', h);
+  else if (mq.addListener) mq.addListener(h);
 }
 
 /* =========================================================
@@ -1694,6 +1738,13 @@ function bindEvents() {
   $('#btn-test-ai').addEventListener('click', testAI);
   $('#btn-test-title-ai').addEventListener('click', testTitleAI);
   $('#btn-test-gh').addEventListener('click', testGitHub);
+
+  /* 主題（黑夜模式） */
+  $('#btn-theme').addEventListener('click', () => {
+    const cur = settings.theme || 'auto';
+    setTheme(cur === 'auto' ? 'dark' : (cur === 'dark' ? 'light' : 'auto'));   /* auto → dark → light → auto */
+  });
+  $('#theme-select').addEventListener('change', e => setTheme(e.target.value));
 }
 
 /* =========================================================
@@ -1704,6 +1755,8 @@ async function init() {
   bindEvents();
   bindFullEdit();
   bindSettingsForm();
+  applyTheme();                 /* 套用黑夜模式（auto / light / dark） */
+  watchSystemTheme();           /* auto 模式：系統轉深淺即時跟隨 */
 
   /* 讀取 repo 入面嘅 settings.json 做非敏感預設（localStorage 會覆蓋）
    * 注意：github_token / api_key 屬於敏感欄位，永遠唔會由 repo 讀入，

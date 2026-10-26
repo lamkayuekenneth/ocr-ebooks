@@ -476,3 +476,57 @@ td textarea { min-height: 90px; }
   .btn { flex: 1; }
   body { padding-bottom: 64px; }
 }
+
+/* ---------- 主題快速切換 button（header） ---------- */
+.theme-toggle {
+  margin-left: auto;
+  flex: none;
+  min-width: 40px;
+  padding: 6px 10px;
+}
+@media (max-width: 720px) {
+  .theme-toggle { position: fixed; right: 10px; top: 8px; z-index: 70; background: var(--card); }
+}
+
+/* =========================================================
+ * 黑夜模式（body.dark，由設定 theme 控制：auto / light / dark）
+ * ========================================================= */
+body.dark {
+  --bg: #1b1712;
+  --card: #262019;
+  --border: #40382c;
+  --text: #eae0d0;
+  --muted: #a99a82;
+  --primary: #e08654;
+  --primary-dark: #e89a6b;
+  --accent: #c49a6d;
+  --success: #7cbb8b;
+  --danger: #e06a4f;
+  --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+}
+body.dark .input,
+body.dark textarea,
+body.dark select,
+body.dark .btn,
+body.dark .modal-box,
+body.dark .loading-box,
+body.dark #full-edit-text { background: #2b241c; color: var(--text); }
+body.dark .btn { border-color: #4a4134; }
+body.dark .btn.danger { background: #5a241a; border-color: #7a3a28; }
+body.dark .btn.success { background: #24502f; border-color: #38704a; }
+body.dark .security-note { background: #33291c; border-color: #5a4526; color: #e8c9a0; }
+body.dark th { background: #2e271e; }
+body.dark tbody tr:hover,
+body.dark .topic-view:hover,
+body.dark .content-view:hover,
+body.dark .dropzone:hover,
+body.dark .book-dropzone:hover,
+body.dark .st-row { background: #2e271e; }
+body.dark .dropzone.over,
+body.dark .book-dropzone.over { background: #3a2f22; }
+body.dark .thumb .remove { background: rgba(255,255,255,.3); color: #171310; }
+body.dark mark { background: #a9742e; color: #171310; }
+body.dark .modal-close { background: #3a3124; }
+body.dark .modal-close:hover { background: #4a3e2c; }
+body.dark .full-edit-header { background: #211c16; }
+body.dark .toast { background: #111827; }

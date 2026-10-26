@@ -16,6 +16,7 @@
     <button class="tab" data-tab="library">📚 書庫</button>
     <button class="tab" data-tab="settings">⚙️ 設定</button>
   </nav>
+  <button class="btn theme-toggle" id="btn-theme" title="主題：自動（跟系統）（撳一下切換）">🔄</button>
 </header>
 
 <main>
@@ -123,6 +124,20 @@
 
   <!-- ============ 設定頁 ============ -->
   <section id="page-settings" class="page">
+    <div class="card">
+      <h2>顯示</h2>
+      <div class="form-grid">
+        <label class="span-2">主題（黑夜模式）
+          <select id="theme-select" class="input">
+            <option value="auto">自動（跟系統）</option>
+            <option value="light">淺色（手動）</option>
+            <option value="dark">深色（手動）</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">「自動」會跟隨你嘅系統／瀏覽器深淺色設定；揀「深色」或「淺色」就係手動固定。頂部 🌙／☀️ 按鈕可以快速切換。</p>
+    </div>
+
     <div class="card">
       <h2>狀態檢查</h2>
       <p class="hint">以下係呢部裝置 + 呢個瀏覽器而家儲存嘅設定。呢啲資料唔會跨裝置 / 跨瀏覽器同步——換咗手機、另一部機或者另一個瀏覽器開網頁，要重新填一次。Key 只會顯示尾 4 位。</p>

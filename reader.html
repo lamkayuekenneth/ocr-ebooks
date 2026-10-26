@@ -57,6 +57,25 @@ header {
 }
 .arrow { padding: 6px 9px; font-size: 13px; }
 .focus-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* 黑夜模式（body.dark，同主 app 共用 ocreb_settings.theme：auto / light / dark） */
+body.dark {
+  --paper: #1b1712;
+  --paper2: #241e16;
+  --ink: #e6dccb;
+  --muted: #a79a82;
+  --accent: #d98b52;
+  --mark: #a9742e;
+  --mark-act: #c78a34;
+  --line: #40382c;
+}
+body.dark .btn, body.dark #search { background: #2b241c; color: var(--ink); }
+body.dark .btn:hover { background: #352c20; }
+body.dark.focus-mode #focus-sentence {
+  color: #f2ead8;
+  background: linear-gradient(135deg, rgba(43, 36, 28, .92), rgba(43, 36, 28, .62));
+  border: 1px solid rgba(120, 105, 85, .9);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .5), inset 0 1px 3px rgba(255, 255, 255, .06);
+}
 /* Focus：專注一句——目標句玻璃面板（半透明白 + 光邊 + 陰影，唔會 blur 其他字），其他字保持正常色 */
 #btn-focus-prev, #btn-focus-next { display: none; }
 body.focus-mode #btn-focus-prev, body.focus-mode #btn-focus-next { display: inline-block; }
@@ -161,6 +180,7 @@ footer {
       <button class="btn" id="font-down" title="縮細字體">A−</button>
       <span id="font-pct">100%</span>
       <button class="btn" id="font-up" title="放大字體">A+</button>
+      <button class="btn" id="btn-theme" title="主題：自動（跟系統）（撳一下切換）">🔄</button>
     </div>
   </div>
   <div class="row2">
@@ -195,6 +215,33 @@ footer {
   const file = params.get('file') || '';
   let settings = {};
   try { settings = JSON.parse(localStorage.getItem('ocreb_settings') || '{}'); } catch (e) { /* ignore */ }
+
+  /* 主題（黑夜模式）：auto / light / dark，同主 app 共用設定 */
+  const themeBtn = $('#btn-theme');
+  function readerDark() {
+    const t = settings.theme || 'auto';
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function applyReaderTheme() {
+    const dark = readerDark();
+    document.body.classList.toggle('dark', dark);
+    if (themeBtn) themeBtn.textContent = (settings.theme || 'auto') === 'auto' ? '🔄' : (dark ? '🌙' : '☀️');
+  }
+  applyReaderTheme();
+  if (themeBtn) themeBtn.addEventListener('click', () => {
+    const cur = settings.theme || 'auto';
+    settings.theme = cur === 'auto' ? 'dark' : (cur === 'dark' ? 'light' : 'auto');
+    try { localStorage.setItem('ocreb_settings', JSON.stringify(settings)); } catch (e) { /* ignore */ }
+    applyReaderTheme();
+  });
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((settings.theme || 'auto') === 'auto') applyReaderTheme();
+    });
+  }
+
   const owner = settings.github_owner || 'lamkayuekenneth';
   const repo  = settings.github_repo  || 'ocr-ebooks';
   const branch = settings.github_branch || 'main';
