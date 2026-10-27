@@ -482,6 +482,15 @@ footer {
     });
   }
 
+  /* 句尾標點後嘅關引號（」』”’）都要包入同一句：
+     「…虛實。」」 → 整句含「。」＋關引號，唔好喺「。」就斷開 */
+  const CLOSE_QUOTE_CH = /[」』”’]/;
+  function closeQuoteEnd(text, i) {
+    let e = i + 1;
+    while (e < text.length && CLOSE_QUOTE_CH.test(text[e])) e++;
+    return e;
+  }
+
   /* 逐字符拆句：每個 text node 內按句尾標點切成一整句一整句 */
   function collectSentences() {
     sentences = [];
@@ -495,8 +504,9 @@ footer {
       let s = 0;
       for (let i = 0; i < text.length; i++) {
         if (isSentEnd(text, i)) {
-          addSentence(n, s, i + 1);
-          s = i + 1;
+          const e = closeQuoteEnd(text, i);
+          addSentence(n, s, e);
+          s = e;
           while (s < text.length && /\s/.test(text[s])) s++;   /* 跳過句尾後嘅 \n 空白，唔好黐住上一行 */
         }
       }
