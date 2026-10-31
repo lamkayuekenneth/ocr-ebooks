@@ -302,7 +302,7 @@ footer {
       if (book.book_title) t.textContent = book.book_title;
       document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
       rows = (Array.isArray(book.rows) ? book.rows : [])
-        .filter(r => r.topic && r.topic.trim())   /* 冇 topic 嘅 row 唔顯示 */
+        .filter(r => (r.content && r.content.trim()) || (r.chapter && r.chapter.trim()))   /* 冇 topic 但有內容／章節名都要顯示（婚禮程序、純文字頁） */
         .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }))
         .sort((a, b) => {
           const ka = pageSortKey(a.page), kb = pageSortKey(b.page);
@@ -366,11 +366,11 @@ footer {
           tag.textContent = r.chapter;
           curSec.appendChild(tag);
         }
-        if (r.topic !== lastTopic) {
+        if (r.topic) {
           const topic = document.createElement('div');
           topic.className = 'topic';
           if (!chapterChanged) topic.classList.add('no-tag');   /* 冇 chapter tag → topic 前加空行分隔 */
-          topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic || '');
+          topic.innerHTML = searchQ ? hl(r.topic, searchQ) : esc(r.topic);
           curSec.appendChild(topic);
         }
         main.appendChild(curSec);
