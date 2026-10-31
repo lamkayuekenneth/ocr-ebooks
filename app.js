@@ -1358,6 +1358,25 @@ function renderDetailRows() {
     tr.appendChild(contentTd);
 
     const act = document.createElement('td');
+    const ins = document.createElement('button');
+    ins.className = 'btn small';
+    ins.textContent = '↑';
+    ins.title = '喺呢行上面插入新頁；以下（包括呢行）所有 page 自動 +1';
+    ins.onclick = () => {
+      const idx = detailRows.findIndex(x => x.id === r.id);
+      if (idx < 0) return;
+      /* 由呢行開始往後，每個數字 page +1（非數字 page 跳過） */
+      for (let j = idx; j < detailRows.length; j++) {
+        const cur = parseInt(detailRows[j].page, 10);
+        if (!isNaN(cur)) detailRows[j].page = String(cur + 1);
+      }
+      /* 新 row 佔用原本呢行嘅 page（而家已 +1，減返 1） */
+      const base = parseInt(detailRows[idx].page, 10);
+      const newPage = isNaN(base) ? '' : String(base - 1);
+      detailRows.splice(idx, 0, { id: uid(), topic: '', content: '', chapter: r.chapter || '', page: newPage });
+      markDetailDirty();
+      renderDetailRows();
+    };
     const del = document.createElement('button');
     del.className = 'btn danger small';
     del.textContent = '✕';
@@ -1369,6 +1388,7 @@ function renderDetailRows() {
       markDetailDirty();
       renderDetailRows();
     };
+    act.appendChild(ins);
     act.appendChild(del);
     tr.appendChild(act);
     tbody.appendChild(tr);
