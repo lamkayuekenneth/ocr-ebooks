@@ -1798,7 +1798,10 @@ async function init() {
     }
   } catch (e) { /* 離線 / private / 冇 token */ }
 
-  showTab('scan');
+  /* URL ?tab=settings（或 #settings）→ 直接落設定頁；冇 token 時自動跳設定（reader 未登入跳過嚟輸入 token 用） */
+  const urlTab = new URLSearchParams(location.search).get('tab') || location.hash.replace('#', '');
+  const startTab = ['scan','library','settings'].includes(urlTab) ? urlTab : (settings.github_token ? 'scan' : 'settings');
+  showTab(startTab);
   renderResultCards();          /* 掃描頁初始即出一張空卡，唔需 AI 分析就可以手動輸入 */
   renderStatusCheck();
   refreshLibrary();
