@@ -411,6 +411,15 @@ let hoverZone = 'page';  // 貼上圖片時去邊度
  * Tab 切換
  * ========================================================= */
 function showTab(name) {
+  /* 冇 token 就唔畀落 scan / library，強制跳設定頁（連撳 tab 都唔得） */
+  if (name === 'scan' || name === 'library') {
+    let hasToken = false;
+    try {
+      const s = JSON.parse(localStorage.getItem('ocreb_settings') || '{}');
+      hasToken = !!(s.github_token && String(s.github_token).trim());
+    } catch (e) { }
+    if (!hasToken) name = 'settings';
+  }
   $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
   if (name === 'library') { refreshLibrary(); }
