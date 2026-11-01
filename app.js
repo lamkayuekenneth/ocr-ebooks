@@ -820,10 +820,9 @@ async function saveSingleRow(row) {
  * ========================================================= */
 async function refreshLibrary() {
   const filter = $('#lib-filter').value.trim().toLowerCase();
-  const tbody = $('#lib-table tbody');
   /* 冇 token → 唔畀檢視／編輯書庫，顯示登入提示 */
   if (!settings.github_token) {
-    tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center;padding:2em">🔒 未登入 GitHub。請先喺「設定」頁填入正確 Token 先可以檢視同編輯書庫。</td></tr>';
+    $('#lib-table tbody').innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center;padding:2em">🔒 未登入 GitHub。請先喺「設定」頁填入正確 Token 先可以檢視同編輯書庫。</td></tr>';
     return;
   }
   let reg = [];
@@ -1784,6 +1783,18 @@ async function init() {
   applyTheme();                 /* 套用黑夜模式（auto / light / dark） */
   watchSystemTheme();           /* auto 模式：系統轉深淺即時跟隨 */
 
+  /* URL ?tab=settings（或 #settings）→ 直接落設定頁；冇 token 時自動跳設定
+   * （放喺 await GitHub API 之前，唔使等網絡就即時跳頁，未登入使用者唔會卡喺掃描頁） */
+  const urlTab = new URLSearchParams(location.search).get('tab') || location.hash.replace('#', '');
+  let hasToken = false;
+  try {
+    const s = JSON.parse(localStorage.getItem('ocreb_settings') || '{}');
+    hasToken = !!(s.github_token && String(s.github_token).trim());
+  } catch (e) { }
+  const startTab = ['scan','library','settings'].includes(urlTab) ? urlTab : (hasToken ? 'scan' : 'settings');
+  showTab(startTab);
+  console.log('[init] startTab =', startTab, 'hasToken =', hasToken);
+
   /* 讀取 repo 入面嘅 settings.json 做非敏感預設（localStorage 會覆蓋）
    * 注意：github_token / api_key 屬於敏感欄位，永遠唔會由 repo 讀入，
    * 就算有人喺 repo 放咗 key 都一律忽略 —— key 只可以存喺本機 localStorage。 */
@@ -1798,10 +1809,6 @@ async function init() {
     }
   } catch (e) { /* 離線 / private / 冇 token */ }
 
-  /* URL ?tab=settings（或 #settings）→ 直接落設定頁；冇 token 時自動跳設定（reader 未登入跳過嚟輸入 token 用） */
-  const urlTab = new URLSearchParams(location.search).get('tab') || location.hash.replace('#', '');
-  const startTab = ['scan','library','settings'].includes(urlTab) ? urlTab : (settings.github_token ? 'scan' : 'settings');
-  showTab(startTab);
   renderResultCards();          /* 掃描頁初始即出一張空卡，唔需 AI 分析就可以手動輸入 */
   renderStatusCheck();
   refreshLibrary();
