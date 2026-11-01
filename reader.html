@@ -284,6 +284,10 @@ footer {
     const t = $('#book-title');
     t.textContent = file.replace(/^books\//, '').replace(/\.json$/, '');
     if (!file) { $('#book').innerHTML = '<div class="err">❌ 冇指定書檔（缺少 ?file= 參數）</div>'; return; }
+    if (!token) {
+      $('#book').innerHTML = '<div class="err">🔒 未登入 GitHub。<br><br>請先喺主頁「設定」頁填入正確 GitHub Token 先可以睇書。<br><br><a href="index.html" style="color:var(--accent)">前往主頁 / 設定</a></div>';
+      return;
+    }
     try {
       const headers = { 'Accept': 'application/vnd.github+json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;

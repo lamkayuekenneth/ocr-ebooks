@@ -820,6 +820,12 @@ async function saveSingleRow(row) {
  * ========================================================= */
 async function refreshLibrary() {
   const filter = $('#lib-filter').value.trim().toLowerCase();
+  const tbody = $('#lib-table tbody');
+  /* 冇 token → 唔畀檢視／編輯書庫，顯示登入提示 */
+  if (!settings.github_token) {
+    tbody.innerHTML = '<tr><td colspan="5" class="hint" style="text-align:center;padding:2em">🔒 未登入 GitHub。請先喺「設定」頁填入正確 Token 先可以檢視同編輯書庫。</td></tr>';
+    return;
+  }
   let reg = [];
   try {
     const raw = await getFileContent('books.json');
