@@ -125,12 +125,13 @@ main {
   font-size: 19px; line-height: 1.9;
 }
 .section { margin-bottom: 2px; }
+.section + .section { margin-top: 1.8em; }   /* 新章 / 新節之間留空行分隔 */
 .section .topic {
   font-size: 1.35em; font-weight: 800; letter-spacing: .5px;
   margin: .3em 0 .45em; color: var(--ink);
   line-height: 1.4;
 }
-.section .topic.no-tag { margin-top: 1.6em; }   /* chapter 冇變 → 冇 tag，topic 前留空行分隔 */
+.section .topic.no-tag { margin-top: 0; }   /* chapter 冇變 → section 之間已經有間距，唔使再加 */
 .chapter-tag {
   display: inline-block;
   font-size: .75em; font-weight: 600; color: var(--accent);
