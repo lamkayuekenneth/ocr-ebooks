@@ -1649,6 +1649,24 @@ function bindEvents() {
   /* Tabs */
   $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
+  /* 設定頁：清除各 token / api key（撳咗即刻清空 input 同 localStorage） */
+  const bindClear = (btnId, inputId, settingKey, label) => {
+    const btn = $(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (!confirm(`確定要清除${label}？清咗之後要重新輸入先用到相關功能。`)) return;
+      const input = $(inputId);
+      if (input) input.value = '';
+      settings[settingKey] = '';
+      saveLocalSettings();
+      toast(`${label}已清除`, 'success');
+      renderStatusCheck();
+    });
+  };
+  bindClear('#btn-clear-gh-token', '#set-gh-token', 'github_token', 'GitHub Token');
+  bindClear('#btn-clear-title-api-key', '#set-title-api-key', 'title_api_key', '認書名 API Key');
+  bindClear('#btn-clear-api-key', '#set-api-key', 'api_key', '讀內容 API Key');
+
   /* 掃描頁：書頁相片 */
   $('#btn-browse').addEventListener('click', () => $('#page-file-input').click());
   $('#btn-camera').addEventListener('click', () => $('#page-camera-input').click());
