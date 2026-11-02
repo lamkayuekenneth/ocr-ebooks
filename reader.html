@@ -811,28 +811,23 @@ footer {
     closing = true;
     const overlay = document.getElementById('bookmark-loading');
     if (overlay) overlay.classList.add('show');
-    const page = currentTopPage || initialBookmark;
+    const page = getTopPage() || initialBookmark;   /* 即時計算，唔靠 scroll 缓存 */
     try { await saveBookmark(page); } catch (e) {}
     window.close();
   });
 
   /* beforeunload / pagehide：refresh/F5/close tab 都要記 bookmark 落 localStorage 備用 */
-  window.addEventListener('beforeunload', () => {
-    if (currentTopPage && file) {
-      try {
-        const k = 'ocr_pending_bookmark_' + file;
-        localStorage.setItem(k, currentTopPage);
-      } catch (e) {}
-    }
-  });
-  window.addEventListener('pagehide', () => {
-    if (currentTopPage && file) {
-      try {
-        const k = 'ocr_pending_bookmark_' + file;
-        localStorage.setItem(k, currentTopPage);
-      } catch (e) {}
-    }
-  });
+  function savePendingBookmark() {
+    if (!file) return;
+    try {
+      const page = getTopPage();
+      if (!page) return;
+      const k = 'ocr_pending_bookmark_' + file;
+      localStorage.setItem(k, page);
+    } catch (e) {}
+  }
+  window.addEventListener('beforeunload', savePendingBookmark);
+  window.addEventListener('pagehide', savePendingBookmark);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { if (window.opener) { window.close(); } return; }
     if (e.target === $('#search')) return;
