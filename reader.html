@@ -457,11 +457,17 @@ footer {
     return contents[contents.length - 1].dataset.page;
   }
 
-  /* 滾動時更新 currentTopPage */
-  function onScrollUpdateBookmark() {
-    currentTopPage = getTopPage();
-  }
-  window.addEventListener('scroll', onScrollUpdateBookmark, { passive: true });
+  /* 滾動停低後自動儲存 bookmark（debounce 1.5 秒） */
+  let autoSaveTimer = null;
+  window.addEventListener('scroll', () => {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(async () => {
+      const page = getTopPage();
+      if (page && page !== initialBookmark) {
+        try { await saveBookmark(page); initialBookmark = page; } catch (e) {}
+      }
+    }, 1500);
+  }, { passive: true });
 
   /* 跳去指定 page */
   function scrollToPage(page) {
