@@ -431,8 +431,11 @@ footer {
   function getTopPage() {
     const contents = Array.from(document.querySelectorAll('#book .content[data-page]'));
     if (!contents.length) return '';
-    const viewTop = window.scrollY + 60;   /* 減 header 高度 */
-    /* 由上到下搵第一個仲未完全滾出視口頂部嘅 content（bottom > viewTop） */
+    /* 實際量度 header + chapters bar 高度，唔好 hardcode */
+    const headerH = document.querySelector('header')?.getBoundingClientRect().height || 60;
+    const chaptersH = document.querySelector('.chapters')?.getBoundingClientRect().height || 0;
+    const viewTop = window.scrollY + headerH + chaptersH + 8;   /* 視口真正顯示內容嘅頂部位置 */
+    /* 由上到下搵第一個仲未完全滾出視口內容區頂部嘅 content（bottom > viewTop） */
     for (const c of contents) {
       const rect = c.getBoundingClientRect();
       const top = rect.top + window.scrollY;
