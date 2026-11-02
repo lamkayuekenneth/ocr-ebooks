@@ -262,7 +262,10 @@ footer {
 
   let rows = [];
   let currentSha = '';       /* book json 嘅 SHA（PUT 更新要用） */
+  let currentCsvSha = '';    /* book csv 嘅 SHA */
   let bookCsvPath = '';      /* 對應 csv 路徑 */
+  let bookCsvText = '';      /* 現有 csv 完整內容 */
+  let bookData = null;       /* 完整 book object（改 bookmark 直接用，唔使再 fetch） */
   let initialBookmark = '';   /* 開書時讀到嘅 bookmark */
   let currentTopPage = '';   /* 當前最頂部顯示緊嘅 page */
   let fontScale = parseFloat(localStorage.getItem('ocr_reader_font') || '1');
@@ -324,7 +327,21 @@ footer {
       document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
       currentSha = data.sha || '';
       initialBookmark = String(book.bookmark || '').trim();
+      bookData = book;   /* 存完整 book object，之後改 bookmark 直接用 */
       bookCsvPath = file.replace(/^books\//, 'books_csv/').replace(/\.json$/, '.csv');
+
+      /* 順手 fetch 一次 csv 內容同 sha（之後改 bookmark 直接用，唔使再 fetch） */
+      try {
+        const csvRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}?ref=${encodeURIComponent(branch)}`, {
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+        });
+        if (csvRes.ok) {
+          const csvData = await csvRes.json();
+          currentCsvSha = csvData.sha || '';
+          const csvBin = atob(csvData.content.replace(/\s/g, ''));
+          bookCsvText = new TextDecoder('utf-8').decode(Uint8Array.from(csvBin, c => c.charCodeAt(0)));
+        }
+      } catch (e) { /* csv 可能唔存在，忽略 */ }
 
       /* 檢查 localStorage 有冇 pending bookmark（上次 refresh/close 時未寫入 repo） */
       try {
@@ -480,47 +497,33 @@ footer {
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }
 
-  /* 寫入 bookmark 去 repo（json + csv） */
+  /* 寫入 bookmark 去 repo（json + csv）——用本地已讀嘅資料，唔使再 fetch 一次 */
   async function saveBookmark(page) {
-    if (!page || !token) return;
+    if (!page || !token || !bookData) return;
     try {
-      /* 1. 讀現有 json，改 bookmark，PUT 返去 */
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(file)}?ref=${encodeURIComponent(branch)}`, {
-        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const bin = atob(data.content.replace(/\s/g, ''));
-      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-      const book = JSON.parse(new TextDecoder('utf-8').decode(bytes));
-      book.bookmark = String(page);
-      const newContent = new TextEncoder().encode(JSON.stringify(book, null, 2));
+      /* 1. 改本地 bookData 嘅 bookmark 欄位 */
+      bookData.bookmark = String(page);
+      const newContent = new TextEncoder().encode(JSON.stringify(bookData, null, 2));
       const b64 = btoa(String.fromCharCode(...new Uint8Array(newContent)));
       await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(file)}`, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `bookmark → p${page}`, content: b64, sha: data.sha, branch })
+        body: JSON.stringify({ message: `bookmark → p${page}`, content: b64, sha: currentSha, branch }),
+        keepalive: true   /* 即使頁面關閉都會完成 */
       });
 
-      /* 2. 讀現有 csv，改 bookmark 行，PUT 返去 */
-      try {
-        const csvRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}?ref=${encodeURIComponent(branch)}`, {
-          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      /* 2. 改本地 csv 嘅 bookmark 行 */
+      if (bookCsvText && currentCsvSha) {
+        bookCsvText = bookCsvText.replace(/^bookmark,.*$/m, `bookmark,${page},,`);
+        const csvBytes = new TextEncoder().encode(bookCsvText);
+        const csvB64 = btoa(String.fromCharCode(...new Uint8Array(csvBytes)));
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}`, {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `bookmark → p${page}`, content: csvB64, sha: currentCsvSha, branch }),
+          keepalive: true
         });
-        if (csvRes.ok) {
-          const csvData = await csvRes.json();
-          const csvBin = atob(csvData.content.replace(/\s/g, ''));
-          let csvText = new TextDecoder('utf-8').decode(Uint8Array.from(csvBin, c => c.charCodeAt(0)));
-          csvText = csvText.replace(/^bookmark,.*$/m, `bookmark,${page},,`);
-          const csvBytes = new TextEncoder().encode(csvText);
-          const csvB64 = btoa(String.fromCharCode(...new Uint8Array(csvBytes)));
-          await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}`, {
-            method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `bookmark → p${page}`, content: csvB64, sha: csvData.sha, branch })
-          });
-        }
-      } catch (e) { /* csv 可能唔存在，忽略 */ }
+      }
     } catch (e) { /* 寫入失敗唔好阻住關頁 */ }
   }
 
