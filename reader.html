@@ -427,20 +427,30 @@ footer {
     }
   }
 
-  /* 搵最頂部顯示緊邊個 page */
+  /* 搵用戶實際睇緊邊個 page（視口中心落喺邊個 content 入面） */
   function getTopPage() {
     const contents = Array.from(document.querySelectorAll('#book .content[data-page]'));
     if (!contents.length) return '';
-    /* 實際量度 header + chapters bar 高度，唔好 hardcode */
+    /* 視口中心位置（扣除 header/chapters bar 嘅偏移） */
     const headerH = document.querySelector('header')?.getBoundingClientRect().height || 60;
     const chaptersH = document.querySelector('.chapters')?.getBoundingClientRect().height || 0;
-    const viewTop = window.scrollY + headerH + chaptersH + 8;   /* 視口真正顯示內容嘅頂部位置 */
-    /* 由上到下搵第一個仲未完全滾出視口內容區頂部嘅 content（bottom > viewTop） */
+    const viewTop = window.scrollY + headerH + chaptersH + 8;
+    const viewBottom = window.scrollY + window.innerHeight;
+    const viewCenter = (viewTop + viewBottom) / 2;
+    /* 優先：視口中心落喺邊個 content 入面 */
     for (const c of contents) {
       const rect = c.getBoundingClientRect();
       const top = rect.top + window.scrollY;
       const bottom = top + rect.height;
-      if (bottom > viewTop) {
+      if (top <= viewCenter && bottom >= viewCenter) {
+        return c.dataset.page;
+      }
+    }
+    /* 兜底：視口中心喺兩個 content 之間，搵下面嗰個 */
+    for (const c of contents) {
+      const rect = c.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      if (top >= viewCenter) {
         return c.dataset.page;
       }
     }
