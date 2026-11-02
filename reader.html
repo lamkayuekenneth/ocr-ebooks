@@ -431,14 +431,17 @@ footer {
   function getTopPage() {
     const contents = Array.from(document.querySelectorAll('#book .content[data-page]'));
     if (!contents.length) return '';
-    const scrollY = window.scrollY + 60;   /* 減 header 高度 */
-    let topPage = contents[0].dataset.page;
+    const viewTop = window.scrollY + 60;   /* 減 header 高度 */
+    /* 由上到下搵第一個仲未完全滾出視口頂部嘅 content（bottom > viewTop） */
     for (const c of contents) {
-      if (c.getBoundingClientRect().top + window.scrollY <= scrollY) {
-        topPage = c.dataset.page;
-      } else break;
+      const rect = c.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const bottom = top + rect.height;
+      if (bottom > viewTop) {
+        return c.dataset.page;
+      }
     }
-    return topPage;
+    return contents[contents.length - 1].dataset.page;
   }
 
   /* 滾動時更新 currentTopPage */
