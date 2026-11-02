@@ -167,6 +167,18 @@ footer {
   main { padding: 18px 14px 70px; }
   .chapters { padding: 6px 10px; }
 }
+/* Bookmark loading overlay */
+#bookmark-loading {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999;
+  display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+}
+#bookmark-loading.show { display: flex; }
+#bookmark-loading .spinner {
+  width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+#bookmark-loading .text { color: #fff; font-size: 16px; font-weight: 600; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -249,6 +261,10 @@ footer {
   const token = settings.github_token || '';
 
   let rows = [];
+  let currentSha = '';       /* book json 嘅 SHA（PUT 更新要用） */
+  let bookCsvPath = '';      /* 對應 csv 路徑 */
+  let initialBookmark = '';   /* 開書時讀到嘅 bookmark */
+  let currentTopPage = '';   /* 當前最頂部顯示緊嘅 page */
   let fontScale = parseFloat(localStorage.getItem('ocr_reader_font') || '1');
   if (!(fontScale >= 0.6 && fontScale <= 2)) fontScale = 1;
   let searchQ = '';
@@ -306,6 +322,20 @@ footer {
       }
       if (book.book_title) t.textContent = book.book_title;
       document.title = (book.book_title || t.textContent) + ' · OCR eBooks';
+      currentSha = data.sha || '';
+      initialBookmark = String(book.bookmark || '').trim();
+      bookCsvPath = file.replace(/^books\//, 'books_csv/').replace(/\.json$/, '.csv');
+
+      /* 檢查 localStorage 有冇 pending bookmark（上次 refresh/close 時未寫入 repo） */
+      try {
+        const pk = 'ocr_pending_bookmark_' + file;
+        const pending = localStorage.getItem(pk);
+        if (pending && pending !== initialBookmark) {
+          localStorage.removeItem(pk);
+          saveBookmark(pending);   /* 背景寫入，唔阻住開書 */
+          initialBookmark = pending;
+        }
+      } catch (e) {}
       rows = (Array.isArray(book.rows) ? book.rows : [])
         .filter(r => (r.content && r.content.trim()) || (r.chapter && r.chapter.trim()))   /* 冇 topic 但有內容／章節名都要顯示（婚禮程序、純文字頁） */
         .map(r => ({ topic: (r.topic || '').trim(), content: (r.content || '').trim(), chapter: (r.chapter || '').trim(), page: (r.page || '').trim() }))
@@ -386,10 +416,90 @@ footer {
       if (curSec.childElementCount > 0) ctext = ctext.replace(/^\n+/, '');   /* 行間無縫：合併行唔留開頭空行 */
       const content = document.createElement('div');
       content.className = 'content';
+      content.dataset.page = r.page || '';
       content.innerHTML = searchQ ? hl(ctext, searchQ) : esc(ctext);
       curSec.appendChild(content);
     });
     updateCount();
+    /* 開書後跳去 bookmark page */
+    if (initialBookmark) {
+      setTimeout(() => scrollToPage(initialBookmark), 100);
+    }
+  }
+
+  /* 搵最頂部顯示緊邊個 page */
+  function getTopPage() {
+    const contents = Array.from(document.querySelectorAll('#book .content[data-page]'));
+    if (!contents.length) return '';
+    const scrollY = window.scrollY + 60;   /* 減 header 高度 */
+    let topPage = contents[0].dataset.page;
+    for (const c of contents) {
+      if (c.getBoundingClientRect().top + window.scrollY <= scrollY) {
+        topPage = c.dataset.page;
+      } else break;
+    }
+    return topPage;
+  }
+
+  /* 滾動時更新 currentTopPage */
+  function onScrollUpdateBookmark() {
+    currentTopPage = getTopPage();
+  }
+  window.addEventListener('scroll', onScrollUpdateBookmark, { passive: true });
+
+  /* 跳去指定 page */
+  function scrollToPage(page) {
+    if (!page) return;
+    const el = document.querySelector(`#book .content[data-page="${CSS.escape(page)}"]`);
+    if (!el) return;
+    const offset = document.querySelector('header').getBoundingClientRect().height +
+                   document.querySelector('.chapters').getBoundingClientRect().height + 8;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
+
+  /* 寫入 bookmark 去 repo（json + csv） */
+  async function saveBookmark(page) {
+    if (!page || !token) return;
+    try {
+      /* 1. 讀現有 json，改 bookmark，PUT 返去 */
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(file)}?ref=${encodeURIComponent(branch)}`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const bin = atob(data.content.replace(/\s/g, ''));
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      const book = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+      book.bookmark = String(page);
+      const newContent = new TextEncoder().encode(JSON.stringify(book, null, 2));
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(newContent)));
+      await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(file)}`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `bookmark → p${page}`, content: b64, sha: data.sha, branch })
+      });
+
+      /* 2. 讀現有 csv，改 bookmark 行，PUT 返去 */
+      try {
+        const csvRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}?ref=${encodeURIComponent(branch)}`, {
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+        });
+        if (csvRes.ok) {
+          const csvData = await csvRes.json();
+          const csvBin = atob(csvData.content.replace(/\s/g, ''));
+          let csvText = new TextDecoder('utf-8').decode(Uint8Array.from(csvBin, c => c.charCodeAt(0)));
+          csvText = csvText.replace(/^bookmark,.*$/m, `bookmark,${page},,`);
+          const csvBytes = new TextEncoder().encode(csvText);
+          const csvB64 = btoa(String.fromCharCode(...new Uint8Array(csvBytes)));
+          await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(bookCsvPath)}`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `bookmark → p${page}`, content: csvB64, sha: csvData.sha, branch })
+          });
+        }
+      } catch (e) { /* csv 可能唔存在，忽略 */ }
+    } catch (e) { /* 寫入失敗唔好阻住關頁 */ }
   }
 
   function updateCount() {
@@ -691,7 +801,35 @@ footer {
   $('#btn-focus-next').addEventListener('click', () => focusMove(1));
   $('#float-focus-prev').addEventListener('click', () => focusMove(-1));
   $('#float-focus-next').addEventListener('click', () => focusMove(1));
-  $('#close').addEventListener('click', () => window.close());
+  /* 關閉前先寫 bookmark，顯示 loading overlay */
+  let closing = false;
+  $('#close').addEventListener('click', async () => {
+    if (closing) return;
+    closing = true;
+    const overlay = document.getElementById('bookmark-loading');
+    if (overlay) overlay.classList.add('show');
+    const page = currentTopPage || initialBookmark;
+    try { await saveBookmark(page); } catch (e) {}
+    window.close();
+  });
+
+  /* beforeunload / pagehide：refresh/F5/close tab 都要記 bookmark 落 localStorage 備用 */
+  window.addEventListener('beforeunload', () => {
+    if (currentTopPage && file) {
+      try {
+        const k = 'ocr_pending_bookmark_' + file;
+        localStorage.setItem(k, currentTopPage);
+      } catch (e) {}
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if (currentTopPage && file) {
+      try {
+        const k = 'ocr_pending_bookmark_' + file;
+        localStorage.setItem(k, currentTopPage);
+      } catch (e) {}
+    }
+  });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { if (window.opener) { window.close(); } return; }
     if (e.target === $('#search')) return;
@@ -706,5 +844,9 @@ footer {
   load();
 })();
 </script>
+<div id="bookmark-loading">
+  <div class="spinner"></div>
+  <div class="text">儲存書籤中…</div>
+</div>
 </body>
 </html>
