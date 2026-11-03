@@ -1,10 +1,5 @@
 [
   {
-    "file": "books/讀歷史了解香港地產.json",
-    "book_title": "讀歷史了解香港地產",
-    "author": "湯文亮"
-  },
-  {
     "file": "books/聖經 (和合修訂本) - 創世紀.json",
     "book_title": "聖經 (和合修訂本) - 創世紀",
     "author": "教會"
@@ -30,13 +25,43 @@
     "author": "教會"
   },
   {
+    "file": "books/聖經 (和合修訂本) - 約書亞記.json",
+    "book_title": "聖經 (和合修訂本) - 約書亞記",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 士師記.json",
+    "book_title": "聖經 (和合修訂本) - 士師記",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 路得記.json",
+    "book_title": "聖經 (和合修訂本) - 路得記",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 撒母耳記上.json",
+    "book_title": "聖經 (和合修訂本) - 撒母耳記上",
+    "author": "教會"
+  },
+  {
     "file": "books/聖經 (和合修訂本) - 撒母耳記下.json",
     "book_title": "聖經 (和合修訂本) - 撒母耳記下",
     "author": "教會"
   },
   {
+    "file": "books/聖經 (和合修訂本) - 列王紀上.json",
+    "book_title": "聖經 (和合修訂本) - 列王紀上",
+    "author": "教會"
+  },
+  {
     "file": "books/聖經 (和合修訂本) - 列王紀下.json",
     "book_title": "聖經 (和合修訂本) - 列王紀下",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 歷代志上.json",
+    "book_title": "聖經 (和合修訂本) - 歷代志上",
     "author": "教會"
   },
   {
@@ -62,11 +87,6 @@
   {
     "file": "books/聖經 (和合修訂本) - 約伯記.json",
     "book_title": "聖經 (和合修訂本) - 約伯記",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 詩篇.json",
-    "book_title": "聖經 (和合修訂本) - 詩篇",
     "author": "教會"
   },
   {
@@ -102,11 +122,6 @@
   {
     "file": "books/聖經 (和合修訂本) - 耶利米哀歌.json",
     "book_title": "聖經 (和合修訂本) - 耶利米哀歌",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 以西結書.json",
-    "book_title": "聖經 (和合修訂本) - 以西結書",
     "author": "教會"
   },
   {
@@ -155,11 +170,6 @@
     "author": "教會"
   },
   {
-    "file": "books/聖經 (和合修訂本) - 那鴻書.json",
-    "book_title": "聖經 (和合修訂本) - 那鴻書",
-    "author": "教會"
-  },
-  {
     "file": "books/聖經 (和合修訂本) - 哈巴谷書.json",
     "book_title": "聖經 (和合修訂本) - 哈巴谷書",
     "author": "教會"
@@ -185,34 +195,9 @@
     "author": "教會"
   },
   {
-    "file": "books/聖經 (和合修訂本) - 歷代志上.json",
-    "book_title": "聖經 (和合修訂本) - 歷代志上",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 列王紀上.json",
-    "book_title": "聖經 (和合修訂本) - 列王紀上",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 撒母耳記上.json",
-    "book_title": "聖經 (和合修訂本) - 撒母耳記上",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 路得記.json",
-    "book_title": "聖經 (和合修訂本) - 路得記",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 士師記.json",
-    "book_title": "聖經 (和合修訂本) - 士師記",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 約書亞記.json",
-    "book_title": "聖經 (和合修訂本) - 約書亞記",
-    "author": "教會"
+    "file": "books/讀歷史了解香港地產.json",
+    "book_title": "讀歷史了解香港地產",
+    "author": "湯文亮"
   },
   {
     "file": "books/THE WEDDING CEREMONY OF Rachel & Daniel.json",
