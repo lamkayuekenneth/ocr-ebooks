@@ -195,128 +195,8 @@
     "author": "教會"
   },
   {
-    "file": "books/聖經 (和合修訂本) - 使徒行傳.json",
-    "book_title": "聖經 (和合修訂本) - 使徒行傳",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 以弗所書.json",
-    "book_title": "聖經 (和合修訂本) - 以弗所書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 提摩太前書.json",
-    "book_title": "聖經 (和合修訂本) - 提摩太前書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 啟示錄.json",
-    "book_title": "聖經 (和合修訂本) - 啟示錄",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 猶大書.json",
-    "book_title": "聖經 (和合修訂本) - 猶大書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 約翰三書.json",
-    "book_title": "聖經 (和合修訂本) - 約翰三書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 約翰二書.json",
-    "book_title": "聖經 (和合修訂本) - 約翰二書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 約翰一書.json",
-    "book_title": "聖經 (和合修訂本) - 約翰一書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 彼得後書.json",
-    "book_title": "聖經 (和合修訂本) - 彼得後書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 彼得前書.json",
-    "book_title": "聖經 (和合修訂本) - 彼得前書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 雅各書.json",
-    "book_title": "聖經 (和合修訂本) - 雅各書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 希伯來書.json",
-    "book_title": "聖經 (和合修訂本) - 希伯來書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 腓利門書.json",
-    "book_title": "聖經 (和合修訂本) - 腓利門書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 提多書.json",
-    "book_title": "聖經 (和合修訂本) - 提多書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 提摩太後書.json",
-    "book_title": "聖經 (和合修訂本) - 提摩太後書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 帖撒羅尼迦後書.json",
-    "book_title": "聖經 (和合修訂本) - 帖撒羅尼迦後書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 帖撒羅尼迦前書.json",
-    "book_title": "聖經 (和合修訂本) - 帖撒羅尼迦前書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 歌羅西書.json",
-    "book_title": "聖經 (和合修訂本) - 歌羅西書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 腓立比書.json",
-    "book_title": "聖經 (和合修訂本) - 腓立比書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 加拉太書.json",
-    "book_title": "聖經 (和合修訂本) - 加拉太書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 哥林多後書.json",
-    "book_title": "聖經 (和合修訂本) - 哥林多後書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 哥林多前書.json",
-    "book_title": "聖經 (和合修訂本) - 哥林多前書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 羅馬書.json",
-    "book_title": "聖經 (和合修訂本) - 羅馬書",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 約翰福音.json",
-    "book_title": "聖經 (和合修訂本) - 約翰福音",
-    "author": "教會"
-  },
-  {
-    "file": "books/聖經 (和合修訂本) - 路加福音.json",
-    "book_title": "聖經 (和合修訂本) - 路加福音",
+    "file": "books/聖經 (和合修訂本) - 馬太福音.json",
+    "book_title": "聖經 (和合修訂本) - 馬太福音",
     "author": "教會"
   },
   {
@@ -325,8 +205,128 @@
     "author": "教會"
   },
   {
-    "file": "books/聖經 (和合修訂本) - 馬太福音.json",
-    "book_title": "聖經 (和合修訂本) - 馬太福音",
+    "file": "books/聖經 (和合修訂本) - 路加福音.json",
+    "book_title": "聖經 (和合修訂本) - 路加福音",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 約翰福音.json",
+    "book_title": "聖經 (和合修訂本) - 約翰福音",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 使徒行傳.json",
+    "book_title": "聖經 (和合修訂本) - 使徒行傳",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 羅馬書.json",
+    "book_title": "聖經 (和合修訂本) - 羅馬書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 哥林多前書.json",
+    "book_title": "聖經 (和合修訂本) - 哥林多前書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 哥林多後書.json",
+    "book_title": "聖經 (和合修訂本) - 哥林多後書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 加拉太書.json",
+    "book_title": "聖經 (和合修訂本) - 加拉太書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 以弗所書.json",
+    "book_title": "聖經 (和合修訂本) - 以弗所書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 腓立比書.json",
+    "book_title": "聖經 (和合修訂本) - 腓立比書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 歌羅西書.json",
+    "book_title": "聖經 (和合修訂本) - 歌羅西書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 帖撒羅尼迦前書.json",
+    "book_title": "聖經 (和合修訂本) - 帖撒羅尼迦前書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 帖撒羅尼迦後書.json",
+    "book_title": "聖經 (和合修訂本) - 帖撒羅尼迦後書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 提摩太前書.json",
+    "book_title": "聖經 (和合修訂本) - 提摩太前書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 提摩太後書.json",
+    "book_title": "聖經 (和合修訂本) - 提摩太後書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 提多書.json",
+    "book_title": "聖經 (和合修訂本) - 提多書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 腓利門書.json",
+    "book_title": "聖經 (和合修訂本) - 腓利門書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 希伯來書.json",
+    "book_title": "聖經 (和合修訂本) - 希伯來書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 雅各書.json",
+    "book_title": "聖經 (和合修訂本) - 雅各書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 彼得前書.json",
+    "book_title": "聖經 (和合修訂本) - 彼得前書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 彼得後書.json",
+    "book_title": "聖經 (和合修訂本) - 彼得後書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 約翰一書.json",
+    "book_title": "聖經 (和合修訂本) - 約翰一書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 約翰二書.json",
+    "book_title": "聖經 (和合修訂本) - 約翰二書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 約翰三書.json",
+    "book_title": "聖經 (和合修訂本) - 約翰三書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 猶大書.json",
+    "book_title": "聖經 (和合修訂本) - 猶大書",
+    "author": "教會"
+  },
+  {
+    "file": "books/聖經 (和合修訂本) - 啟示錄.json",
+    "book_title": "聖經 (和合修訂本) - 啟示錄",
     "author": "教會"
   },
   {
