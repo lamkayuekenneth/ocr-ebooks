@@ -1,0 +1,471 @@
+[
+  {
+    "book": "以弗所書",
+    "status": "OK",
+    "new": 153,
+    "old": 153,
+    "issues": []
+  },
+  {
+    "book": "以斯帖記",
+    "status": "OK",
+    "new": 165,
+    "old": 165,
+    "issues": []
+  },
+  {
+    "book": "以斯拉記",
+    "status": "OK",
+    "new": 280,
+    "old": 280,
+    "issues": []
+  },
+  {
+    "book": "以西結書",
+    "status": "OK",
+    "new": 1270,
+    "old": 1288,
+    "issues": []
+  },
+  {
+    "book": "以賽亞書",
+    "status": "OK",
+    "new": 1288,
+    "old": 1337,
+    "issues": []
+  },
+  {
+    "book": "但以理書",
+    "status": "OK",
+    "new": 357,
+    "old": 357,
+    "issues": []
+  },
+  {
+    "book": "何西阿書",
+    "status": "OK",
+    "new": 197,
+    "old": 196,
+    "issues": []
+  },
+  {
+    "book": "使徒行傳",
+    "status": "OK",
+    "new": 1000,
+    "old": 1003,
+    "issues": []
+  },
+  {
+    "book": "俄巴底亞書",
+    "status": "OK",
+    "new": 21,
+    "old": 21,
+    "issues": []
+  },
+  {
+    "book": "傳道書",
+    "status": "OK",
+    "new": 222,
+    "old": 221,
+    "issues": []
+  },
+  {
+    "book": "出埃及記",
+    "status": "OK",
+    "new": 1213,
+    "old": 1213,
+    "issues": []
+  },
+  {
+    "book": "列王紀上",
+    "status": "OK",
+    "new": 816,
+    "old": 816,
+    "issues": []
+  },
+  {
+    "book": "列王紀下",
+    "status": "OK",
+    "new": 719,
+    "old": 721,
+    "issues": []
+  },
+  {
+    "book": "利未記",
+    "status": "OK",
+    "new": 859,
+    "old": 859,
+    "issues": []
+  },
+  {
+    "book": "創世紀",
+    "status": "OK",
+    "new": 1533,
+    "old": 1533,
+    "issues": []
+  },
+  {
+    "book": "加拉太書",
+    "status": "OK",
+    "new": 148,
+    "old": 149,
+    "issues": []
+  },
+  {
+    "book": "哈巴谷書",
+    "status": "OK",
+    "new": 56,
+    "old": 56,
+    "issues": []
+  },
+  {
+    "book": "哈該書",
+    "status": "OK",
+    "new": 38,
+    "old": 38,
+    "issues": []
+  },
+  {
+    "book": "哥林多前書",
+    "status": "OK",
+    "new": 436,
+    "old": 437,
+    "issues": []
+  },
+  {
+    "book": "哥林多後書",
+    "status": "OK",
+    "new": 256,
+    "old": 257,
+    "issues": []
+  },
+  {
+    "book": "啟示錄",
+    "status": "OK",
+    "new": 404,
+    "old": 408,
+    "issues": []
+  },
+  {
+    "book": "士師記",
+    "status": "OK",
+    "new": 618,
+    "old": 617,
+    "issues": []
+  },
+  {
+    "book": "尼希米記",
+    "status": "OK",
+    "new": 406,
+    "old": 404,
+    "issues": []
+  },
+  {
+    "book": "希伯來書",
+    "status": "OK",
+    "new": 301,
+    "old": 303,
+    "issues": []
+  },
+  {
+    "book": "帖撒羅尼迦前書",
+    "status": "OK",
+    "new": 88,
+    "old": 89,
+    "issues": []
+  },
+  {
+    "book": "帖撒羅尼迦後書",
+    "status": "OK",
+    "new": 46,
+    "old": 47,
+    "issues": []
+  },
+  {
+    "book": "彌迦書",
+    "status": "OK",
+    "new": 105,
+    "old": 105,
+    "issues": []
+  },
+  {
+    "book": "彼得前書",
+    "status": "OK",
+    "new": 105,
+    "old": 105,
+    "issues": []
+  },
+  {
+    "book": "彼得後書",
+    "status": "OK",
+    "new": 61,
+    "old": 61,
+    "issues": []
+  },
+  {
+    "book": "提多書",
+    "status": "OK",
+    "new": 46,
+    "old": 46,
+    "issues": []
+  },
+  {
+    "book": "提摩太前書",
+    "status": "OK",
+    "new": 113,
+    "old": 113,
+    "issues": []
+  },
+  {
+    "book": "提摩太後書",
+    "status": "OK",
+    "new": 83,
+    "old": 83,
+    "issues": []
+  },
+  {
+    "book": "撒加利亞書",
+    "status": "OK",
+    "new": 211,
+    "old": 212,
+    "issues": []
+  },
+  {
+    "book": "撒母耳記上",
+    "status": "OK",
+    "new": 810,
+    "old": 815,
+    "issues": []
+  },
+  {
+    "book": "撒母耳記下",
+    "status": "OK",
+    "new": 695,
+    "old": 693,
+    "issues": []
+  },
+  {
+    "book": "歌羅西書",
+    "status": "OK",
+    "new": 94,
+    "old": 93,
+    "issues": []
+  },
+  {
+    "book": "歷代志上",
+    "status": "OK",
+    "new": 939,
+    "old": 940,
+    "issues": []
+  },
+  {
+    "book": "歷代志下",
+    "status": "OK",
+    "new": 822,
+    "old": 834,
+    "issues": []
+  },
+  {
+    "book": "民數記",
+    "status": "OK",
+    "new": 1288,
+    "old": 1263,
+    "issues": []
+  },
+  {
+    "book": "猶大書",
+    "status": "OK",
+    "new": 25,
+    "old": 25,
+    "issues": []
+  },
+  {
+    "book": "瑪拉基書",
+    "status": "OK",
+    "new": 55,
+    "old": 55,
+    "issues": []
+  },
+  {
+    "book": "申命記",
+    "status": "OK",
+    "new": 959,
+    "old": 952,
+    "issues": []
+  },
+  {
+    "book": "箴言",
+    "status": "OK",
+    "new": 912,
+    "old": 912,
+    "issues": []
+  },
+  {
+    "book": "約伯記",
+    "status": "OK",
+    "new": 1070,
+    "old": 1079,
+    "issues": []
+  },
+  {
+    "book": "約拿書",
+    "status": "OK",
+    "new": 48,
+    "old": 48,
+    "issues": []
+  },
+  {
+    "book": "約書亞記",
+    "status": "OK",
+    "new": 658,
+    "old": 657,
+    "issues": []
+  },
+  {
+    "book": "約珥書",
+    "status": "OK",
+    "new": 73,
+    "old": 73,
+    "issues": []
+  },
+  {
+    "book": "約翰一書",
+    "status": "OK",
+    "new": 105,
+    "old": 105,
+    "issues": []
+  },
+  {
+    "book": "約翰三書",
+    "status": "OK",
+    "new": 15,
+    "old": 15,
+    "issues": []
+  },
+  {
+    "book": "約翰二書",
+    "status": "OK",
+    "new": 13,
+    "old": 13,
+    "issues": []
+  },
+  {
+    "book": "約翰福音",
+    "status": "OK",
+    "new": 878,
+    "old": 878,
+    "issues": []
+  },
+  {
+    "book": "羅馬書",
+    "status": "OK",
+    "new": 427,
+    "old": 433,
+    "issues": []
+  },
+  {
+    "book": "耶利米哀歌",
+    "status": "OK",
+    "new": 154,
+    "old": 154,
+    "issues": []
+  },
+  {
+    "book": "耶利米書",
+    "status": "OK",
+    "new": 1362,
+    "old": 1385,
+    "issues": []
+  },
+  {
+    "book": "腓利門書",
+    "status": "OK",
+    "new": 25,
+    "old": 25,
+    "issues": []
+  },
+  {
+    "book": "腓立比書",
+    "status": "OK",
+    "new": 104,
+    "old": 104,
+    "issues": []
+  },
+  {
+    "book": "西番雅書",
+    "status": "OK",
+    "new": 52,
+    "old": 52,
+    "issues": []
+  },
+  {
+    "book": "詩篇",
+    "status": "OK",
+    "new": 2449,
+    "old": 2581,
+    "issues": []
+  },
+  {
+    "book": "路加福音",
+    "status": "OK",
+    "new": 1146,
+    "old": 1146,
+    "issues": []
+  },
+  {
+    "book": "路得記",
+    "status": "OK",
+    "new": 85,
+    "old": 85,
+    "issues": []
+  },
+  {
+    "book": "那鴻書",
+    "status": "OK",
+    "new": 47,
+    "old": 47,
+    "issues": []
+  },
+  {
+    "book": "阿摩司書",
+    "status": "OK",
+    "new": 146,
+    "old": 146,
+    "issues": []
+  },
+  {
+    "book": "雅各書",
+    "status": "OK",
+    "new": 108,
+    "old": 108,
+    "issues": []
+  },
+  {
+    "book": "雅歌",
+    "status": "OK",
+    "new": 117,
+    "old": 117,
+    "issues": []
+  },
+  {
+    "book": "馬可福音",
+    "status": "OK",
+    "new": 671,
+    "old": 678,
+    "issues": []
+  },
+  {
+    "book": "馬太福音",
+    "status": "OK",
+    "new": 1067,
+    "old": 1072,
+    "issues": []
+  },
+  {
+    "book": "聖經目錄",
+    "status": "SKIP_UNMAPPED",
+    "new": 0,
+    "old": 5,
+    "issues": []
+  }
+]

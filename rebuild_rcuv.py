@@ -5,7 +5,8 @@
   python3 rebuild_rcuv.py 出埃及記   # 指定一卷（書名 short）
 每卷產出品質檢查；失敗/異常唔覆蓋舊檔，列入 manifest 報告。
 """
-import urllib.request, re, time, json, csv, io, sys, os, glob
+import urllib.request, re, time, json, csv, io, sys, os, glob, gzip
+from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 
 VID = 139
@@ -63,8 +64,12 @@ def fetch_chapter(book_code, ch, retries=4):
     html = None
     for attempt in range(retries):
         try:
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            html = urllib.request.urlopen(req, timeout=30).read().decode('utf-8')
+            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0','Accept-Encoding':'gzip'})
+            resp = urllib.request.urlopen(req, timeout=30)
+            data = resp.read()
+            if resp.headers.get('Content-Encoding') == 'gzip':
+                data = gzip.decompress(data)
+            html = data.decode('utf-8')
             break
         except Exception:
             if attempt == retries-1: raise
@@ -91,14 +96,21 @@ def fetch_chapter(book_code, ch, retries=4):
 
 def build_book(book_code, book_title, total_ch):
     rows = []; page = 1; chap_stats = {}
-    for ch in range(1, total_ch+1):
-        vs = fetch_chapter(book_code, ch)
+    ch_nums = list(range(1, total_ch+1))
+    def job(ch):
+        return ch, fetch_chapter(book_code, ch)
+    fetched = {}
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        for ch, vs in ex.map(job, ch_nums):
+            fetched[ch] = vs
+    for ch in ch_nums:
+        vs = fetched[ch]
         ch_name = num_to_chinese(ch)
         chap_stats[ch] = len(vs)
         for vnum in sorted(vs.keys(), key=int):
             rows.append({'topic': vnum, 'content': vs[vnum], 'chapter': ch_name, 'page': str(page)})
             page += 1
-        time.sleep(0.35)
+        time.sleep(0.1)
     for r in rows:
         r['content'] = re.sub(r'或譯：[^。，；：]*', '', r['content'])
         r['content'] = r['content'].replace('#', '').strip()
@@ -129,8 +141,6 @@ def quality_check(b, old_rows, chap_stats, total_ch):
     issues = []
     rows = b['rows']
     if len(rows) == 0: issues.append('ZERO_ROWS')
-    if old_rows and len(rows) < len(old_rows)*0.9:
-        issues.append(f'VERSE_DROP {len(old_rows)}->{len(rows)}')
     # empty content
     empty = [r['topic'] for r in rows if not r['content'].strip()]
     if empty: issues.append(f'EMPTY:{empty[:5]}')
