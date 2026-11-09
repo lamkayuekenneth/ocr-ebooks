@@ -82,12 +82,22 @@ def fetch_chapter(book_code, ch, retries=4):
     verses = {}
     current = None
     for block in content.find_all('span', class_='cat7xG_verse'):
+        # 優先用 data-usfm 權威節號：PSA.1.1+PSA.1.2 → 跨節合併，歸第一節
+        usfm = block.get('data-usfm') or ''
+        nums = []
+        for p in usfm.split('+'):
+            m = re.search(r'\.(\d+)$', p)
+            if m: nums.append(int(m.group(1)))
         t = block.get_text(separator='', strip=True)
         t = _compress_spaces(t)
+        # 剝離開頭節號 label（含跨節 1-2 / 1–2 形式）
+        t = re.sub(r'^\d+\s*[-–—]\s*\d+', '', t)
+        t = re.sub(r'^\d+', '', t)
+        t = t.strip()
         if not t: continue
-        m = re.match(r'^(\d+)(.*)$', t)
-        if m:
-            current = m.group(1); verses[current] = m.group(2).strip()
+        if nums:
+            current = str(nums[0]); verses.setdefault(current, '')
+            verses[current] += t
         elif current is not None:
             verses[current] += t
     for k in verses:

@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 backup_414/
+backup_rcuv_v1/
+backup_rcuv_v1_csv/
 rebuild_run.log

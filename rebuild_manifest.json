@@ -24,14 +24,14 @@
     "book": "以西結書",
     "status": "OK",
     "new": 1270,
-    "old": 1288,
+    "old": 1270,
     "issues": []
   },
   {
     "book": "以賽亞書",
     "status": "OK",
     "new": 1288,
-    "old": 1337,
+    "old": 1288,
     "issues": []
   },
   {
@@ -45,14 +45,14 @@
     "book": "何西阿書",
     "status": "OK",
     "new": 197,
-    "old": 196,
+    "old": 197,
     "issues": []
   },
   {
     "book": "使徒行傳",
     "status": "OK",
     "new": 1000,
-    "old": 1003,
+    "old": 1000,
     "issues": []
   },
   {
@@ -66,7 +66,7 @@
     "book": "傳道書",
     "status": "OK",
     "new": 222,
-    "old": 221,
+    "old": 222,
     "issues": []
   },
   {
@@ -87,7 +87,7 @@
     "book": "列王紀下",
     "status": "OK",
     "new": 719,
-    "old": 721,
+    "old": 719,
     "issues": []
   },
   {
@@ -108,7 +108,7 @@
     "book": "加拉太書",
     "status": "OK",
     "new": 148,
-    "old": 149,
+    "old": 148,
     "issues": []
   },
   {
@@ -129,56 +129,56 @@
     "book": "哥林多前書",
     "status": "OK",
     "new": 436,
-    "old": 437,
+    "old": 436,
     "issues": []
   },
   {
     "book": "哥林多後書",
     "status": "OK",
     "new": 256,
-    "old": 257,
+    "old": 256,
     "issues": []
   },
   {
     "book": "啟示錄",
     "status": "OK",
     "new": 404,
-    "old": 408,
+    "old": 404,
     "issues": []
   },
   {
     "book": "士師記",
     "status": "OK",
     "new": 618,
-    "old": 617,
+    "old": 618,
     "issues": []
   },
   {
     "book": "尼希米記",
     "status": "OK",
     "new": 406,
-    "old": 404,
+    "old": 406,
     "issues": []
   },
   {
     "book": "希伯來書",
     "status": "OK",
     "new": 301,
-    "old": 303,
+    "old": 301,
     "issues": []
   },
   {
     "book": "帖撒羅尼迦前書",
     "status": "OK",
     "new": 88,
-    "old": 89,
+    "old": 88,
     "issues": []
   },
   {
     "book": "帖撒羅尼迦後書",
     "status": "OK",
     "new": 46,
-    "old": 47,
+    "old": 46,
     "issues": []
   },
   {
@@ -227,49 +227,49 @@
     "book": "撒加利亞書",
     "status": "OK",
     "new": 211,
-    "old": 212,
+    "old": 211,
     "issues": []
   },
   {
     "book": "撒母耳記上",
     "status": "OK",
     "new": 810,
-    "old": 815,
+    "old": 810,
     "issues": []
   },
   {
     "book": "撒母耳記下",
     "status": "OK",
     "new": 695,
-    "old": 693,
+    "old": 695,
     "issues": []
   },
   {
     "book": "歌羅西書",
     "status": "OK",
     "new": 94,
-    "old": 93,
+    "old": 94,
     "issues": []
   },
   {
     "book": "歷代志上",
     "status": "OK",
     "new": 939,
-    "old": 940,
+    "old": 939,
     "issues": []
   },
   {
     "book": "歷代志下",
     "status": "OK",
     "new": 822,
-    "old": 834,
+    "old": 822,
     "issues": []
   },
   {
     "book": "民數記",
     "status": "OK",
     "new": 1288,
-    "old": 1263,
+    "old": 1288,
     "issues": []
   },
   {
@@ -290,7 +290,7 @@
     "book": "申命記",
     "status": "OK",
     "new": 959,
-    "old": 952,
+    "old": 959,
     "issues": []
   },
   {
@@ -304,7 +304,7 @@
     "book": "約伯記",
     "status": "OK",
     "new": 1070,
-    "old": 1079,
+    "old": 1070,
     "issues": []
   },
   {
@@ -318,7 +318,7 @@
     "book": "約書亞記",
     "status": "OK",
     "new": 658,
-    "old": 657,
+    "old": 658,
     "issues": []
   },
   {
@@ -360,7 +360,7 @@
     "book": "羅馬書",
     "status": "OK",
     "new": 427,
-    "old": 433,
+    "old": 427,
     "issues": []
   },
   {
@@ -374,7 +374,7 @@
     "book": "耶利米書",
     "status": "OK",
     "new": 1362,
-    "old": 1385,
+    "old": 1362,
     "issues": []
   },
   {
@@ -402,7 +402,7 @@
     "book": "詩篇",
     "status": "OK",
     "new": 2449,
-    "old": 2581,
+    "old": 2449,
     "issues": []
   },
   {
@@ -451,14 +451,14 @@
     "book": "馬可福音",
     "status": "OK",
     "new": 671,
-    "old": 678,
+    "old": 671,
     "issues": []
   },
   {
     "book": "馬太福音",
     "status": "OK",
     "new": 1067,
-    "old": 1072,
+    "old": 1067,
     "issues": []
   },
   {
