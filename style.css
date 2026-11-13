@@ -255,6 +255,7 @@ table { border-collapse: collapse; width: 100%; min-width: 760px; }
   font-family: inherit;
 }
 .meta-pair input.meta-input::placeholder { color: var(--muted); }
+.meta-pair input.meta-input:not(:placeholder-shown) { font-weight: 500; }
 .meta-pair input.meta-input:focus { border-color: var(--accent); background: #fff; }
 /* page 固定窄欄（頁碼通常得幾個字，唔使拉咁闊） */
 .meta-pair input.page-input { flex: 0 0 58px; text-align: right; }
